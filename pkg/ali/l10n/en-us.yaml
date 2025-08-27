@@ -1,0 +1,13 @@
+ali:
+  label: Alibaba Cloud
+  test: test
+ack:
+  location:
+    label: Location
+  accordions:
+    basics: Basics
+    networking: Networking
+    labels: Labels and Annotations
+cluster:
+  provider:
+    alibaba: Alibaba
