@@ -1,6 +1,13 @@
 ali:
   label: Alibaba Cloud
   test: test
+  cloudcredential:
+    accessKeyID:
+      label: Access Key ID
+      placeholder: Your Ali Cloud Access Key ID
+    accessKeySecret:
+      label: Access Key Secret
+      placeholder: Your Ali Cloud Access Key Secret
 ack:
   location:
     label: Location

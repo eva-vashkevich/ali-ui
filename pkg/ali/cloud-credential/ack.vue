@@ -60,10 +60,10 @@ export default defineComponent({
   <div v-else>
     <LabeledInput
       :value="value.decodedData.accessKeyID"
-      label-key="cluster.credential.aws.accessKey.label"
-      placeholder-key="cluster.credential.aws.accessKey.placeholder"
+      label-key="ali.cloudcredential.accessKeyID.label"
+      placeholder-key="ali.cloudcredential.accessKeyID.placeholder"
       type="text"
-      :rules="fvGetAndReportPathRules('decodedData.accessKey')"
+      :rules="fvGetAndReportPathRules('decodedData.accessKeyID')"
       :mode="mode"
       :required="true"
       data-testid="access-key"
@@ -72,10 +72,10 @@ export default defineComponent({
     <LabeledInput
       :value="value.decodedData.accessKeySecret"
       class="mt-20"
-      label-key="cluster.credential.aws.secretKey.label"
-      placeholder-key="cluster.credential.aws.secretKey.placeholder"
+      label-key="ali.cloudcredential.accessKeySecret.label"
+      placeholder-key="ali.cloudcredential.accessKeySecret.placeholder"
       type="password"
-      :rules="fvGetAndReportPathRules('decodedData.secretKey')"
+      :rules="fvGetAndReportPathRules('decodedData.accessKeySecret')"
       :mode="mode"
       :required="true"
       data-testid="secret-key"
