@@ -17,7 +17,7 @@ import ACKConfig from './Config.vue';
 import ClusterMembershipEditor, { canViewClusterMembershipEditor } from '@shell/components/form/Members/ClusterMembershipEditor.vue';
 
 import cloneDeep from 'lodash/cloneDeep';
-import { NORMAN, MANAGEMENT } from '@shell/config/types';
+import { NORMAN } from '@shell/config/types';
 import {
   getACKRegions
 } from '../util/ack';
@@ -77,13 +77,14 @@ export default defineComponent({
     }
   },
   data() {
-    return { config: { }, // as ACKConfig,
-    membershipUpdate: {}, // as any,
+    return { config: { } as any,
+    normanCluster:    { name: '' } as any,
+    membershipUpdate: {} as any,
     configIsValid:          true,
     loadingLocations: false,
     originalVersion:  '',
     configUnreportedErrors: [],
-    locationOptions: [] // as string[],
+    locationOptions: [] as string[],
     };
   },
 
@@ -107,17 +108,16 @@ export default defineComponent({
         this.normanCluster['aliConfig'] = { ...defaultAckConfig };
       }
     }
-},
-watch: {
+    },
+    watch: {
 
     'config.alibabaCredentialSecret'(neu) {
         if (neu) {
-            //this.resetCredentialDependentProperties();
             this.getLocations();
         }
     },
 
-},
+    },
   computed: {
     ...mapGetters({ t: 'i18n/t' }),
     CREATE(): string {
@@ -151,7 +151,6 @@ watch: {
       const { alibabaCredentialSecret } = this.config;
       try {
         const res = await getACKRegions(this.$store, alibabaCredentialSecret);
-        console.log(res)
     } catch (err: any) {
         this.loadingLocations = false;
         const parsedError = err.error || '';
@@ -258,15 +257,12 @@ watch: {
       </div>
       <Import
         v-if="isImport"
-        v-model:cluster-name="config.clusterName"
-        v-model:resource-group="config.resourceGroup"
-
-        v-model:resource-location="config.regionId"
-        v-model:enable-network-policy="normanCluster.enableNetworkPolicy"
-        data-testid="cruack-import"
-        :alibaba-credential-secret="config.alibabaCredentialSecret"
+        :cluster-name="config.clusterName"
+        :region="config.regionId"
+        :credential="config.alibabaCredentialSecret"
         :rules="{clusterName: fvGetAndReportPathRules('clusterName')}"
         :mode="mode"
+        data-testid="cruack-import"
         @error="e=>errors.push(e)"
       />
       <ACKConfig
@@ -274,7 +270,6 @@ watch: {
         v-model:config="config"
         v-model:config-unreported-errors="configUnreportedErrors"
         v-model:config-is-valid="configIsValid"
-        v-model:enable-network-policy="normanCluster.enableNetworkPolicy"
         :value="value"
         :mode="mode"
         :original-version="originalVersion"

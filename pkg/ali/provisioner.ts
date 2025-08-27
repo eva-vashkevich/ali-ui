@@ -17,11 +17,11 @@ export class ACKProvisioner implements IClusterProvisioner {
   }
 
   get icon(): any {
-    return require('./icon.png');
+    return require('./icon.svg');
   }
 
   get image(): any {
-    return require('./icon.png');
+    return require('./icon.svg');
   }
 
   get group(): string {

@@ -7,11 +7,9 @@ import LabeledInput from '@components/Form/LabeledInput/LabeledInput.vue';
 export default {
   name: 'ImportACK',
 
-  emits: ['update:clusterName', 'error', 'update:enableNetworkPolicy'],
+  emits: ['update:clusterName', 'error'],
 
-  components: {
-    LabeledSelect, LabeledInput
-  },
+  components: { LabeledSelect, LabeledInput },
 
   props: {
     mode: {
@@ -34,11 +32,6 @@ export default {
     region: {
       type:    String,
       default: ''
-    },
-
-    enableNetworkPolicy: {
-      type:    Boolean,
-      default: false
     },
 
     rules: {
@@ -75,16 +68,7 @@ export default {
       }
       this.loadingClusters = true;
       try {
-        // const aliClient = await this.$store.dispatch('aws/eks', { region: this.region, cloudCredentialId: this.credential });
-
-        // const res = await aliClient.listClusters({});
-        // const clusters = res?.clusters;
-
-        // if (!clusters) {
-        //   return;
-        // }
-
-        // this.clusters = res?.clusters;
+       //TODO get ali clusters here
       } catch (err) {
         this.$emit('error', err);
       }

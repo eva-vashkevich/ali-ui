@@ -13,8 +13,8 @@ export default function(plugin: IPlugin): void {
 
   // Register custom provisioner object
   plugin.register('provisioner', ACKProvisioner.ID, ACKProvisioner);
-  plugin.register('image', 'providers/alibaba.svg', require('./icon.png'));
+  plugin.register('image', 'providers/alibaba.svg', require('./icon.svg'));
 
   // Built-in icon
-  plugin.metadata.icon = require('./icon.png');
+  plugin.metadata.icon = require('./icon.svg');
 }

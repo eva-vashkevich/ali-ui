@@ -1,17 +1,8 @@
 <script lang='ts'>
-import semver from 'semver';
-import { mapGetters, Store } from 'vuex';
+import { mapGetters } from 'vuex';
 import { defineComponent, PropType } from 'vue';
 import debounce from 'lodash/debounce';
-import { randomStr } from '@shell/utils/string';
-import { isArray, removeObject } from '@shell/utils/array';
 import { _CREATE, _EDIT, _VIEW } from '@shell/config/query-params';
-// import { MANAGEMENT } from '@shell/config/types';
-// import { sortable } from '@shell/utils/version';
-// import { sortBy } from '@shell/utils/sort';
-// import { SETTING } from '@shell/config/settings';
-// import { parseAlibabaError } from '@shell/utils/alibaba';
-
 import CreateEditView from '@shell/mixins/create-edit-view';
 import FormValidation from '@shell/mixins/form-validation';
 import LabeledSelect from '@shell/components/form/LabeledSelect.vue';
@@ -55,7 +46,7 @@ export default defineComponent({
     },
 
     config: {
-      type:     Object as PropType<AKSConfig>,
+      type:     Object as PropType<any>,
       required: true
     },
     isNewOrUnprovisioned: {
@@ -112,7 +103,6 @@ export default defineComponent({
     },
     config: {
       handler: debounce(function(neu) {
-        // console.log('*** updating config');
         this.$emit('update:config', neu);
       }, 200),
       deep: true
