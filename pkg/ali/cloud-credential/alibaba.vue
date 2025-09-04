@@ -16,7 +16,7 @@ export default defineComponent({
     return {
       knownRegions:   null,
       fvFormRuleSets: [
-        { path: 'decodedData.accessKeyID', rules: ['required'] },
+        { path: 'decodedData.accessKeyId', rules: ['required'] },
         { path: 'decodedData.accessKeySecret', rules: ['required'] },
       ]
     };
@@ -29,13 +29,16 @@ export default defineComponent({
   },
 
   methods: {
+    //  TODO: once backend is done, check if this is enough or if we should check for something else,
+    //  because right now this can give false positivies
+
     async test() {
       try {
         await this.$store.dispatch('management/request', {
           url:                  '/meta/alibabaCheckCredentials',
           method:               'POST',
           data:                 {
-            accessKeyID:      this.value.decodedData.accessKeyID,
+            accessKeyId:      this.value.decodedData.accessKeyId,
             accessKeySecret:      this.value.decodedData.accessKeySecret,
             acceptLanguage:  'en-US'
           },
@@ -59,15 +62,15 @@ export default defineComponent({
   />
   <div v-else>
     <LabeledInput
-      :value="value.decodedData.accessKeyID"
+      :value="value.decodedData.accessKeyId"
       label-key="ali.cloudcredential.accessKeyID.label"
       placeholder-key="ali.cloudcredential.accessKeyID.placeholder"
       type="text"
-      :rules="fvGetAndReportPathRules('decodedData.accessKeyID')"
+      :rules="fvGetAndReportPathRules('decodedData.accessKeyId')"
       :mode="mode"
       :required="true"
       data-testid="access-key"
-      @update:value="$emit('valueChanged', 'accessKeyID', $event)"
+      @update:value="$emit('valueChanged', 'accessKeyId', $event)"
     />
     <LabeledInput
       :value="value.decodedData.accessKeySecret"

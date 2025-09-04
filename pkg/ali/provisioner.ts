@@ -1,9 +1,7 @@
 import { IClusterProvisioner, ClusterProvisionerContext } from '@shell/core/types';
 import CruACK from './components/CruACK.vue';
-import CloudCredentialAck from './cloud-credential/ack.vue'
 import { mapDriver } from '@shell/store/plugins';
 import type { Component } from 'vue';
-import { MANAGEMENT } from '@shell/config/types';
 
 export class ACKProvisioner implements IClusterProvisioner {
   static ID = 'alibaba'
@@ -36,16 +34,8 @@ export class ACKProvisioner implements IClusterProvisioner {
     return CruACK;
   }
 
-  get cloudCredential(): Component{
-    return CloudCredentialAck;
-  }
-
   get hidden(): boolean {
     return false;
-  }
-
-  get providesCredential(): boolean {
-    return true;
   }
 
   get detailTabs(): any {
