@@ -1,6 +1,5 @@
 ali:
   label: Alibaba Cloud
-  test: test
   cloudcredential:
     accessKeyID:
       label: Access Key ID
@@ -8,13 +7,34 @@ ali:
     accessKeySecret:
       label: Access Key Secret
       placeholder: Your Ali Cloud Access Key Secret
+  import:
+    label: Cluster to import
 ack:
   location:
     label: Location
   accordions:
+    cluster: Cluster
     basics: Basics
     networking: Networking
     labels: Labels and Annotations
+  kubernetesVersion:
+    label: Kubernetes Version
+  networkPlugin:
+    label: Network Plugin
+    options:
+      flannel: Flannel
+      terway: Terway
+  containerCidr:
+    label: Container Network Address Range
+  podVswitchIds:
+    label: Pod VSwitch IDs
+  vpc:
+    title: Virtual Private Clouds
+    label: Virtual Private Cloud
+    default: Create a new vpc automatically
+    useCustom: Select from existing VPCs
+  errors:
+    versions: 'An error occurred while fetching the available kubernetes versions: {e}'
 cluster:
   provider:
     alibaba: Alibaba

@@ -1,9 +1,9 @@
-<script>
+<script lang="ts">
 import { _EDIT } from '@shell/config/query-params';
 import debounce from 'lodash/debounce';
 import LabeledSelect from '@shell/components/form/LabeledSelect.vue';
 import LabeledInput from '@components/Form/LabeledInput/LabeledInput.vue';
-
+import { getAlibabaClusters } from '../util/ack';
 export default {
   name: 'ImportACK',
 
@@ -68,7 +68,9 @@ export default {
       }
       this.loadingClusters = true;
       try {
-       //TODO get ali clusters here
+        const res = await getAlibabaClusters(this.$store, this.credential, this.region );
+
+        this.clusters = res?.clusters?.map((c: any) => c.name );
       } catch (err) {
         this.$emit('error', err);
       }

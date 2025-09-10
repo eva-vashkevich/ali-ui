@@ -12,17 +12,22 @@ import Banner from '@components/Banner/Banner.vue';
 import { _CREATE, _EDIT, _VIEW, _IMPORT } from '@shell/config/query-params';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import FormValidation from '@shell/mixins/form-validation';
+import Tab from '@shell/components/Tabbed/Tab.vue';
+import Tabbed from '@shell/components/Tabbed/index.vue';
 import Import from './Import.vue';
-import ACKConfig from './Config.vue';
+import Basics from './Basics.vue';
+import NodePool from './NodePool.vue';
+import Networking from './Networking.vue';
 import ClusterMembershipEditor, { canViewClusterMembershipEditor } from '@shell/components/form/Members/ClusterMembershipEditor.vue';
-
 import cloneDeep from 'lodash/cloneDeep';
 import { NORMAN } from '@shell/config/types';
+import { removeObject } from '@shell/utils/array';
+import { randomStr } from '@shell/utils/string';
 import {
-  getACKRegions
+  getAlibabaRegions
 } from '../util/ack';
 
-const DEFAULT_REGION = 'eastus';
+const DEFAULT_REGION = 'us-east-1';
 
 const importedDefaultAckConfig = {
   clusterName:      '',
@@ -38,9 +43,31 @@ export const defaultAckConfig = {
 };
 
 const defaultCluster = {
-  
   labels:                  {},
   annotations:             {},
+};
+
+export const DEFAULT_NODE_GROUP_CONFIG = {
+  instanceTypes: [
+    "ecs.c7.xlarge",
+    "ecs.c7a.xlarge"
+  ],
+  systemDiskCategory: "cloud_essd",
+  systemDiskSize: 20,
+  dataDisks: [
+    {
+      "category": "cloud_essd",
+      "size": 40,
+      "encrypted": "false"
+    }
+  ],
+  desiredSize: 2,
+  imageId: "aliyun_3_x64_20G_alibase_20241218.vhd",
+  imageType: "AliyunLinux3",
+  runtime: "containerd",
+  runtimeVersion:"1.6.38",
+  vswitchIds:  [],
+  _isNewOrUnprovisioned:               true,
 };
 
 export default defineComponent({
@@ -56,8 +83,12 @@ export default defineComponent({
     Accordion,
     Banner,
     Loading,
-    ACKConfig,
-    Import
+    Import,
+    Basics,
+    Networking,
+    NodePool,
+    Tabbed,
+    Tab,
   },
 
   mixins: [CreateEditView, FormValidation],
@@ -67,8 +98,6 @@ export default defineComponent({
       type:    String,
       default: _CREATE
     },
-
-    // provisioning cluster object
     value: {
       type:    Object,
       default: () => {
@@ -79,12 +108,14 @@ export default defineComponent({
   data() {
     return { config: { } as any,
     normanCluster:    { name: '' } as any,
+    nodePools:        [],
     membershipUpdate: {} as any,
     configIsValid:          true,
     loadingLocations: false,
     originalVersion:  '',
     configUnreportedErrors: [],
     locationOptions: [] as string[],
+    fvFormRuleSets:  []
     };
   },
 
@@ -104,13 +135,22 @@ export default defineComponent({
       this.normanCluster.aliConfig = cloneDeep(importedDefaultAckConfig);
       this.config = this.normanCluster.aliConfig;
     } else {
+      
         if (!this.normanCluster.aliConfig) {
-        this.normanCluster['aliConfig'] = { ...defaultAckConfig };
+          this.normanCluster['aliConfig'] = { ...defaultAckConfig };
+        if ((!this.config.nodepools || !this.config.nodepools.length) && this.mode === _CREATE) {
+          this.config['nodepools'] = [{ ...DEFAULT_NODE_GROUP_CONFIG, nodepoolName: 'group1' }];
+        }
+        console.log(this.config.nodepools)
+        if (this.config.nodepools) {
+          this.nodepools = this.config.nodepools;
+        } else {
+          this.config['nodepools'] = this.nodepools;
+        }
       }
     }
     },
     watch: {
-
     'config.alibabaCredentialSecret'(neu) {
         if (neu) {
             this.getLocations();
@@ -150,13 +190,21 @@ export default defineComponent({
 
       const { alibabaCredentialSecret } = this.config;
       try {
-        const res = await getACKRegions(this.$store, alibabaCredentialSecret);
-    } catch (err: any) {
-        this.loadingLocations = false;
-        const parsedError = err.error || '';
-        const errors = this.errors as Array<string>;
+        const res = await getAlibabaRegions(this.$store, alibabaCredentialSecret);
+        this.locationOptions = (res?.Regions?.Region||[]).map((r)=>{return {value: r.RegionId, label: `${r?.RegionId} - ${r.LocalName}`}});
 
-        errors.push(this.t('aks.errors.regions', { e: parsedError || err }));
+        if (this.locationOptions.find((r: any) => r.value === DEFAULT_REGION)) {
+            this.config.regionId = DEFAULT_REGION;
+          } else {
+            this.config.regionId = this.locationOptions[0]?.value;
+          }
+        this.loadingLocations = false;
+      } catch (err: any) {
+          this.loadingLocations = false;
+          const parsedError = err.error || '';
+          const errors = this.errors as Array<string>;
+
+          errors.push(this.t('aks.errors.regions', { e: parsedError || err }));
       }
 
     },
@@ -173,12 +221,41 @@ export default defineComponent({
         await this.membershipUpdate.save(this.normanCluster.id);
       }
     },
+    async actuallySave(): Promise<void> {
+      await this.normanCluster.save();
+      
+      return await this.normanCluster.waitForCondition('InitialRolesPopulated');
+    },
     setClusterName(name: string): void {
       this.normanCluster['name'] = name;
 
       if (!this.isImport) {
         this.config['clusterName'] = name;
       }
+    },
+    removePool(i: number) {
+      const pool = this.nodePools[i];
+
+      removeObject(this.nodePools, pool);
+    },
+
+    addPool() {
+      console.log(this.nodePools)
+      const poolName = `group-${ this.nodePools.length + 1 }`;
+      const _id = randomStr();
+      const neu = {
+        ...cloneDeep(DEFAULT_NODE_GROUP_CONFIG), name: poolName, _id, _isNewOrUnprovisioned: true, version: this.config.kubernetesVersion
+      };
+
+      this.nodePools.push(neu);
+
+      this.$nextTick(() => {
+        const pools = this.$refs.pools as any as typeof Tabbed;
+
+        if ( pools && pools.select ) {
+          pools.select(poolName);
+        }
+      });
     },
   }
 });
@@ -193,10 +270,11 @@ export default defineComponent({
     :mode="mode"
     :can-yaml="false"
     :done-route="doneRoute"
+    :validation-passed="fvFormIsValid && configIsValid"
     @error="e=>errors=e"
     @finish="save"
   >
-    <SelectCredential
+  <SelectCredential
       v-model:value="config.alibabaCredentialSecret"
       data-testid="cruack-select-credential"
       :mode="mode === VIEW ? VIEW : CREATE"
@@ -211,10 +289,9 @@ export default defineComponent({
       class="mt-10"
       data-testid="cruack-form"
     >
-      <div class="row mb-10">
+      <div class="row mb-20">
         <div
-          class="col"
-          :class="{'span-6': isImport, 'span-4': !isImport}"
+          class="col span-4"
         >
           <LabeledInput
             :value="normanCluster.name"
@@ -226,8 +303,7 @@ export default defineComponent({
           />
         </div>
         <div
-          class="col"
-          :class="{'span-6': isImport, 'span-4': !isImport}"
+          class="col span-4"
         >
           <LabeledInput
             v-model:value="normanCluster.description"
@@ -237,7 +313,6 @@ export default defineComponent({
           />
         </div>
         <div
-          v-if="!isImport"
           class="col span-4"
         >
           <LabeledSelect
@@ -245,36 +320,94 @@ export default defineComponent({
             data-testid="cruack-regionId"
             :mode="mode"
             :options="locationOptions"
-            option-label="displayName"
-            option-key="name"
             label-key="ack.location.label"
-            :reduce="opt=>opt.name"
             :loading="loadingLocations"
             required
             :disabled="!isNewOrUnprovisioned"
-          />
+          >
+          </LabeledSelect>
         </div>
       </div>
-      <Import
+      <Accordion
         v-if="isImport"
-        :cluster-name="config.clusterName"
-        :region="config.regionId"
-        :credential="config.alibabaCredentialSecret"
-        :rules="{clusterName: fvGetAndReportPathRules('clusterName')}"
-        :mode="mode"
-        data-testid="cruack-import"
-        @error="e=>errors.push(e)"
-      />
-      <ACKConfig
-        v-else
-        v-model:config="config"
-        v-model:config-unreported-errors="configUnreportedErrors"
-        v-model:config-is-valid="configIsValid"
-        :value="value"
-        :mode="mode"
-        :original-version="originalVersion"
-        :is-new-or-unprovisioned="isNewOrUnprovisioned"
-      />
+        :open-initially="true"
+        class="mb-20"
+        title-key="ack.accordions.cluster"
+      >
+        <Import
+          v-model:cluster-name="config.clusterName"
+          :region="config.regionId"
+          :credential="config.alibabaCredentialSecret"
+          :rules="{clusterName: fvGetAndReportPathRules('clusterName')}"
+          :mode="mode"
+          data-testid="cruack-import"
+          @error="e=>errors.push(e)"
+        />
+      </Accordion>
+      <div  v-else>
+        <div><h3>{{ t('eks.nodepools.title') }}</h3></div>
+        <Tabbed
+          ref="pools"
+          class="mb-20"
+          :side-tabs="true"
+          :show-tabs-add-remove="mode !== VIEW"
+          :use-hash="false"
+          @removeTab="removePool($event)"
+          @addTab="addPool()"
+        >
+          <Tab
+            v-for="(pool, i) in nodepools"
+            :key="i"
+            :label="pool.nodepoolName || t('eks.nodepools.unnamed')"
+            :name="`${pool.nodepoolName} ${i}`"
+          >
+          <NodePool
+            :mode="mode"
+            :region="config.regionId"
+            :pool="pool"
+            :isPrimaryPool="i===0"
+            :original-cluster-version="originalVersion"
+            :cluster-version="config.kubernetesVersion"
+            @remove="removePool(pool)"
+            @vmSizeSet="touchedVmSize = true"
+          />
+          </Tab>
+        </Tabbed>
+        <Accordion
+          :open-initially="true"
+          class="mb-20"
+          title-key="ack.accordions.basics"
+        >
+          <Basics
+            v-model:config="config"
+            v-model:config-unreported-errors="configUnreportedErrors"
+            v-model:config-is-valid="configIsValid"
+            v-model:enable-network-policy="normanCluster.enableNetworkPolicy"
+            :value="value"
+            :mode="mode"
+            :original-version="originalVersion"
+            :is-new-or-unprovisioned="isNewOrUnprovisioned"
+            @error="e=>errors.push(e)"
+          />
+        </Accordion>
+        <Accordion
+          :open-initially="true"
+          class="mb-20"
+          title-key="ack.accordions.networking"
+        >
+          <Networking
+            v-model:config="config"
+            v-model:config-unreported-errors="configUnreportedErrors"
+            v-model:config-is-valid="configIsValid"
+            v-model:enable-network-policy="normanCluster.enableNetworkPolicy"
+            :value="value"
+            :mode="mode"
+            :original-version="originalVersion"
+            :is-new-or-unprovisioned="isNewOrUnprovisioned"
+            @error="e=>errors.push(e)"
+          />
+        </Accordion>
+      </div>
       <Accordion
         class="mb-20"
         title-key="members.memberRoles"
