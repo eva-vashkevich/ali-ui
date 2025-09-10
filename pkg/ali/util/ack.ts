@@ -36,8 +36,7 @@ export async function getAlibabaKubernetesVersions(store: Store<any>, alibabaCre
 }
 
 export async function getAlibabaClusters(store: Store<any>, alibabaCredentialSecret: string, regionId?: string) :Promise<any> {
-    const options = {pageSize:1, pageNumber:1}; //TODO change once I know more
-    return getACKOptions(store, alibabaCredentialSecret, regionId, 'alibabaClusters', '', options );
+    return getACKOptions(store, alibabaCredentialSecret, regionId, 'alibabaClusters' );
 }
 
 export async function getAlibabaInstanceTypes(store: Store<any>, alibabaCredentialSecret: string, regionId?: string) :Promise<any> {
