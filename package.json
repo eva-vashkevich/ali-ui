@@ -1,13 +1,13 @@
 {
   "name": "ali-ui",
-  "description": "UI for Ali CLoud cluster provisioning",
+  "description": "UI for Alibaba CLoud cluster provisioning",
   "version": "0.0.1",
   "private": false,
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
-    "@rancher/components": "^0.3.0-alpha.1",
+    "@rancher/components": "0.3.0-alpha.1",
     "@rancher/shell": "3.0.5-rc.8",
     "@types/lodash": "4.14.196",
     "cache-loader": "4.1.0",

@@ -9,3 +9,6 @@ ali:
       placeholder: Your Ali Cloud Access Key Secret
   import:
     label: Cluster to import
+cluster:
+  provider:
+    alibaba: Alibaba Cloud
