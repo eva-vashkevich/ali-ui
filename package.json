@@ -1,6 +1,6 @@
 {
   "name": "ali-ui",
-  "description": "UI for Alibaba CLoud cluster provisioning",
+  "description": "Create Alibaba Cloud clusters in Rancher",
   "version": "0.0.1",
   "private": false,
   "engines": {

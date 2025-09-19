@@ -1,7 +1,5 @@
 import { IClusterProvisioner, ClusterProvisionerContext } from '@shell/core/types';
-import CruACK from './components/CruACK.vue';
 import { mapDriver } from '@shell/store/plugins';
-import type { Component } from 'vue';
 
 export class ACKProvisioner implements IClusterProvisioner {
   static ID = 'alibaba'
