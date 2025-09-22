@@ -28,7 +28,7 @@ export async function getAlibabaRegions(store: Store<any>, alibabaCredentialSecr
 }
 
 export async function getAlibabaKubernetesVersions(store: Store<any>, alibabaCredentialSecret: string, regionId: string, isEdit: boolean) :Promise<any> {
-    const extra = {clusterType:"ManagedKubernetes", mode:"supported"}; //TODO change once I know more
+    const extra: any = {clusterType:"ManagedKubernetes", mode:"supported"}; //TODO change once I know more
     if(isEdit){
         extra.getUpgradableVersions = true;
     }

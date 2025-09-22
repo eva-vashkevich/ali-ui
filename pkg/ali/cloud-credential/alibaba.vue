@@ -14,7 +14,6 @@ export default defineComponent({
 
   data() {
     return {
-      knownRegions:   null,
       fvFormRuleSets: [
         { path: 'decodedData.accessKeyId', rules: ['required'] },
         { path: 'decodedData.accessKeySecret', rules: ['required'] },
