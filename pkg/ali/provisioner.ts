@@ -1,6 +1,7 @@
 import { IClusterProvisioner, ClusterProvisionerContext } from '@shell/core/types';
 import { mapDriver } from '@shell/store/plugins';
-
+import type { Component } from 'vue';
+import CruACK from './components/CruACK.vue';
 export class ACKProvisioner implements IClusterProvisioner {
   static ID = 'alibaba'
 
@@ -26,6 +27,9 @@ export class ACKProvisioner implements IClusterProvisioner {
 
   get label(): string {
     return this.context.t('ali.label');
+  }
+  get component(): Component {
+    return CruACK;
   }
 
   get hidden(): boolean {
