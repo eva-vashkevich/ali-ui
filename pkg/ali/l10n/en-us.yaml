@@ -12,3 +12,82 @@ ali:
 cluster:
   provider:
     alibaba: Alibaba Cloud
+ack:
+  location:
+    label: Location
+  accordions:
+    cluster: Cluster
+    basics: Basics
+    networking: Networking
+    labels: Labels and Annotations
+  nodePool:
+    name: 
+      label: Node Pool Name
+    unnamed: Unnamed Node Pool
+    desiredSize:
+      label: Expected Nodes
+    instanceTypes:
+      label: Instance Types
+      banner: You can select multiple instance types. Nodes are created based on the order of the instance types in the above list. If one instance type is unavailable, the next instance type is used. The actual instance types used to create nodes are subject to inventory availability.
+    systemDisk:
+      title: System Disk
+    dataDisks:
+      title: Data Disks
+    diskCategory:
+      label: Category
+      options:
+         cloud: Basic Disk
+         cloudEfficiency: Ultra Disk
+         cloudSsd: Standard SSD Disk
+         cloudEssd: ESSD Disk
+         cloudAuto: ESSD AutoPL Disk
+         cloudEssdEntry: ESSD Entry Disk
+    diskSize:
+      label: Disk size
+    diskGroup:
+      add: Add disk
+      remove: Remove disk
+    diskEncrypted:
+      label: Encryption
+    remove:
+      label: Remove Disk
+  kubernetesVersion:
+    label: Kubernetes Version
+  
+  networking:
+    resourceGroupId:
+      label: Resource group
+      default: Not Selected
+    networkPlugin:
+      label: Network Plugin
+      options:
+        flannel: Flannel
+        terway: Terway
+    proxyMode:
+        label: Forwarding Mode
+        options:
+          iptables: iptables
+          ipvs: IPVS
+    containerCidr:
+      label: Container Network Address Range
+    serviceCidr:
+      label: Service CIDR
+      placeholder: 192.168.0.0/16
+    podVswitchIds:
+      label: Pod vSwitch
+      auto: Pod vSwitches are automatically created from the VPC.
+    endpointPublicAccess:
+      label: Expose API server with EIP
+    vpc:
+      title: Virtual Private Clouds
+      label: Virtual Private Cloud
+      default: Create a new vpc automatically
+      useCustom: Select from existing VPCs
+      availabilityZones:
+        label: Zone
+      vswitchIds:
+        label: vSwitch 
+      snatEntry:
+        label: Configure SNAT for VPC
+  errors:
+    versions: 'An error occurred while fetching the available kubernetes versions: {e}'
