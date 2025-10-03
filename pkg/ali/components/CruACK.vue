@@ -486,6 +486,32 @@ export default defineComponent({
             @error="e=>errors.push(e)"
           />
         </Accordion>
+        <Accordion
+          :open-initially="false"
+          class="mb-20"
+          title-key="cluster.agentConfig.tabs.cluster"
+        >
+        <AgentConfiguration
+              v-model:value="normanCluster.clusterAgentDeploymentCustomization"
+              data-testid="rke2-cluster-agent-config"
+              type="cluster"
+              :mode="mode"
+              :scheduling-customization-feature-enabled=false
+            />
+        </Accordion>
+        <Accordion
+          :open-initially="false"
+          class="mb-20"
+          title-key="cluster.agentConfig.tabs.fleet"
+        >
+        <AgentConfiguration
+              v-if="normanCluster.fleetAgentDeploymentCustomization"
+              v-model:value="normanCluster.fleetAgentDeploymentCustomization"
+              data-testid="rke2-fleet-agent-config"
+              type="fleet"
+              :mode="mode"
+            />
+        </Accordion>
       </div>
       <Accordion
         class="mb-20"
@@ -513,32 +539,7 @@ export default defineComponent({
           :mode="mode"
         />
       </Accordion>
-      <Accordion
-          :open-initially="false"
-          class="mb-20"
-          title-key="cluster.agentConfig.tabs.cluster"
-        >
-        <AgentConfiguration
-              v-model:value="normanCluster.clusterAgentDeploymentCustomization"
-              data-testid="rke2-cluster-agent-config"
-              type="cluster"
-              :mode="mode"
-              :scheduling-customization-feature-enabled=false
-            />
-        </Accordion>
-        <Accordion
-          :open-initially="false"
-          class="mb-20"
-          title-key="cluster.agentConfig.tabs.fleet"
-        >
-        <AgentConfiguration
-              v-if="normanCluster.fleetAgentDeploymentCustomization"
-              v-model:value="normanCluster.fleetAgentDeploymentCustomization"
-              data-testid="rke2-fleet-agent-config"
-              type="fleet"
-              :mode="mode"
-            />
-        </Accordion>
+      
     </div>
 
     <template
