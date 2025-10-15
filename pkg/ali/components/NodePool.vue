@@ -5,18 +5,20 @@ import { _CREATE, _VIEW } from '@shell/config/query-params';
 import LabeledInput from '@components/Form/LabeledInput/LabeledInput.vue';
 import LabeledSelect from '@shell/components/form/LabeledSelect.vue';
 import Banner from '@components/Banner/Banner.vue';
+import InstanceType from './InstanceType.vue';
 import DiskType from './DiskType.vue';
 import DiskGroup from './DiskGroup.vue';
 
 export default defineComponent({
   name: 'ACKNodePool',
 
-  emits: ['update:value', 'validationChanged'],
+  emits: ['update:value', 'imageChanged', 'validationChanged'],
 
   components: {
     LabeledInput,
     LabeledSelect,
     Banner,
+    InstanceType,
     DiskType,
     DiskGroup
   },
@@ -31,16 +33,15 @@ export default defineComponent({
       type:     Object,
       required: true
     },
-    region: {
-      type:    String,
-      default: ''
+    config:{
+      type:     Object,
+      required: true
     },
-
-    instanceTypeOptions: {
+    imageOptions: {
       type:    Array,
       default: () => []
     },
-    loadingInstanceTypes: {
+    loadingImages: {
       type:    Boolean,
       default: false
     },
@@ -59,10 +60,6 @@ export default defineComponent({
 
   computed: {
     ...mapGetters({ t: 'i18n/t' }),
-    // instanceTypeOptions(): { value: string, label: string }[] {
-    //   console.log(this.allInstanceTypes)
-    //   return this.allInstanceTypes.map((v) => ({ value: v, label: v }));
-    // },
     systemDisk:{
       get() {
         return {category: this.pool.systemDiskCategory, size:this.pool.systemDiskSize };
@@ -72,10 +69,17 @@ export default defineComponent({
         this.pool.systemDiskSize = neu.size;
       }
     },
+    image:{
+      get() {
+        return {imageId: this.pool.imageId, imageType:this.pool.imageType };
+      },
+      set(neu: {imageId: string, imageType: string}) {
+        this.pool.imageId = neu.imageId;
+        this.pool.imageType = neu.imageType;
+      }
+    }
   },
   
-
-  methods: {},
 });
 </script>
 
@@ -105,24 +109,26 @@ export default defineComponent({
         />
       </div>
     </div>
-    <div class="col mb-10">
-      <Banner
-        color="info"
-        label-key="ack.nodePool.instanceTypes.banner"
-        data-testid="cruack-instanceTypesBanner"
-      />
+    <div class="row mb-20">
       <div class="col span-6">
         <LabeledSelect
-          v-model:value="pool.instanceTypes"
+          v-model:value="image"
           :mode="mode"
-          :loading="loadingInstanceTypes"
-          :options="instanceTypeOptions"
-          label-key="ack.nodePool.instanceTypes.label"
+          :loading="loadingImages"
+          :options="imageOptions"
+          label-key="ack.nodePool.imageId.label"
           required
           :disabled="!pool._isNewOrUnprovisioned"
-          :multiple="true"
         />
       </div>
+    </div>
+    <div class="col mb-30">
+      <InstanceType 
+        v-model:value="pool.instanceTypes"
+        :config="config"
+        :mode="mode"
+        :isNewOrUnprovisioned="pool._isNewOrUnprovisioned"
+      />
     </div>
   </div>
   <p class="mb-10">{{ t('ack.nodePool.systemDisk.title')}}</p>
@@ -131,39 +137,13 @@ export default defineComponent({
     :mode="mode"
     :isNewOrUnprovisioned="pool._isNewOrUnprovisioned"
     :showEncrypted="false"
+    
   />
   <p class="mb-10">{{ t('ack.nodePool.dataDisks.title')}}</p>
   <DiskGroup 
     v-model:value="pool.dataDisks"
     :mode="mode"
   />
-
-  <!-- <div class="col span-3">
-        <LabeledSelect
-          v-model:value="pool.vmSize"
-          :options="vmSizeOptions"
-          label-key="aks.nodePools.vmSize.label"
-          :loading="loadingVmSizes"
-          :mode="mode"
-          :disabled="!pool._isNewOrUnprovisioned"
-        />
-      </div> -->
-
-  <!-- <div class="col span-2">
-        <RadioGroup
-          v-model:value="pool.mode"
-          :mode="mode"
-          :options="modeOptions"
-          :name="`${pool._id}-mode`"
-          :row="true"
-          label-key="generic.mode"
-          @update:value="$emit('validationChanged')"
-        >
-          <template #label>
-            <span class="text-label">{{ t('aks.nodePools.mode.label') }}</span>
-          </template>
-        </RadioGroup>
-      </div> -->
 </template>
 
 <style lang="scss" scoped>

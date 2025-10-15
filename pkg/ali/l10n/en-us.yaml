@@ -26,7 +26,25 @@ ack:
     unnamed: Unnamed Node Pool
     desiredSize:
       label: Expected Nodes
+    imageId:
+      label: Image
     instanceTypes:
+      title: Instance types
+      table:
+        add: Add
+        columns:
+          instanceFamily: Instance Family
+          instanceType: Instance Type
+          vcpus: vCPU
+          memory: Memory  
+          stock: Stock Availability 
+          zones: Zones         
+      cpu:
+        label: Number of vCPUs
+        option: '{val} vCPU'
+      memory:
+        label: Memory
+        option: '{val} GB'
       label: Instance Types
       banner: You can select multiple instance types. Nodes are created based on the order of the instance types in the above list. If one instance type is unavailable, the next instance type is used. The actual instance types used to create nodes are subject to inventory availability.
     systemDisk:
@@ -91,3 +109,7 @@ ack:
         label: Configure SNAT for VPC
   errors:
     versions: 'An error occurred while fetching the available kubernetes versions: {e}'
+
+generic:
+  moveUp: Move up
+  moveDown: Move down

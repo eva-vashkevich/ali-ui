@@ -80,7 +80,7 @@ export async function getAlibabaClusters(
   );
 }
 
-export async function getAlibabaInstanceTypes(
+export async function getAllAlibabaInstanceTypes(
   store: Store<any>,
   alibabaCredentialSecret: string,
   regionId?: string
@@ -173,12 +173,41 @@ export async function getAlibabaVSwitches(
   );
 }
 
-export async function getAlibabaImageTypes( //TBD
+export async function getAlibabaInstanceTypeFamilies(
   store: Store<any>,
   alibabaCredentialSecret: string,
   regionId: string
 ): Promise<any> {
-  const extra = { destinationResource: "ImageType" };
+  const extra: any = {
+    destinationResource: "InstanceTypeFamily",
+  };
+  return getACKOptions(
+    store,
+    alibabaCredentialSecret,
+    regionId,
+    "alibabaAvailableResources"
+    // "",
+    // extra
+  );
+}
+
+export async function getAlibabaInstanceTypes(
+  store: Store<any>,
+  alibabaCredentialSecret: string,
+  regionId: string,
+  vcpu: number,
+  memory: number
+): Promise<any> {
+  const extra: any = {
+    destinationResource: "InstanceType",
+    networkCategory: "vpc",
+  };
+  if (!!vcpu) {
+    extra.cores = vcpu;
+  }
+  if (!!memory) {
+    extra.memory = memory;
+  }
   return getACKOptions(
     store,
     alibabaCredentialSecret,

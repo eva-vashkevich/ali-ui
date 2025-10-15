@@ -1,5 +1,5 @@
 <script lang='ts'>
-import { mapGetters, Store } from 'vuex';
+import { mapGetters } from 'vuex';
 import { defineComponent, PropType } from 'vue';
 import debounce from 'lodash/debounce';
 import { _CREATE, _EDIT, _VIEW } from '@shell/config/query-params';
@@ -16,8 +16,7 @@ import Tabbed from '@shell/components/Tabbed/index.vue';
 import Accordion from '@components/Accordion/Accordion.vue';
 import Banner from '@components/Banner/Banner.vue';
 import { RadioGroup } from '@components/Form/Radio';
-import { MANAGEMENT } from '@shell/config/types';
-import { SETTING } from '@shell/config/settings';
+
 import {
   getAlibabaResourceGroups, getAlibabaVpcs, getAlibabaZones, getAlibabaVSwitches
 } from '../util/ack';
@@ -72,12 +71,7 @@ export default defineComponent({
   },
 
   data() {
-    const store = this.$store;
-    // This setting is used by RKE1 AKS GKE and EKS - rke2/k3s have a different mechanism for fetching supported versions
-    const supportedVersionRange = store.getters['management/byId'](MANAGEMENT.SETTING, SETTING.UI_SUPPORTED_K8S_VERSIONS)?.value;
-    
     return {
-      supportedVersionRange,
       loadingResourceGroups:      false,
       loadingVPCs: false,
       loadingAvailabilityZones: false,
@@ -86,13 +80,18 @@ export default defineComponent({
       allAvailabilityZones: [],
       allVPCs: [],
       allVSwitches: [],
-      fvFormRuleSets:         [],
       chooseVPC:          false //TODO edit once know more
     };
   },
 
   computed: {
     ...mapGetters({ t: 'i18n/t' }),
+    alibabaCredentialSecret(): string {
+      return this.config.alibabaCredentialSecret;
+    },
+    regionId(): string {
+      return this.config.regionId;
+    },
 
     fvExtraRules() {
       return {};
@@ -138,7 +137,9 @@ export default defineComponent({
       return this.allAvailabilityZones;
     },
     podVswitchIdOptions(): Array<any> {
-      return [];
+      const unformatted = this.config?.vswitchIds || [];
+
+      return unformatted.map((vswitchId) => {return {value: vswitchId, label: vswitchId}});
     },
     vswitchIdOptions(): Array<any> {
       return this.allVSwitches;
@@ -146,6 +147,20 @@ export default defineComponent({
   },
 
   watch: {
+    chooseVPC(isCustom) {
+      if (this.isCreate) { // Only when creating
+        if (isCustom) {
+          this.config.zoneIds = [];
+        } else {
+          this.config.vpcId = '';
+          this.config.vswitchIds = [];
+          this.config.podVswitchIds = [];
+          if (this.allAvailabilityZones.length) {
+            this.config.zoneIds = this.allAvailabilityZones.map(z => z.value);
+          }
+        }
+      }
+    },
     fvFormIsValid: {
       immediate: true,
       handler(neu) {
@@ -165,28 +180,41 @@ export default defineComponent({
       deep: true
     },
     'config.regionId': {
-      handler(neu) {
-        if (neu) {
+      handler(neu, old) {
+        if (neu && neu !== old) {
+          // Clear dependent values
+          this.config.resourceGroupId = '';
+          this.config.vpcId = '';
+          this.config.vswitchIds = [];
+          this.config.podVswitchIds = [];
+          this.config.zoneIds = [];
+
+          // Fetch new options
           this.getResourceGroups();
           this.getZones();
-          this.getVPCs();
-          this.getVswitches();
         }
       },
       immediate: true
     },
     'config.resourceGroupId': {
-      handler(neu) {
-        if (neu) {
+      handler(neu, old) {
+        if (neu !== old) {
+          // Clear dependent values
+          this.config.vpcId = '';
+          this.config.vswitchIds = [];
+          this.config.podVswitchIds = [];
+
+          // Fetch new options
           this.getVPCs();
-          this.getVswitches();
         }
       },
       immediate: true
     },
     'config.vpcId': {
-      handler(neu) {
-        if (neu) {
+      handler(neu, old) {
+        if (neu && neu !== old) {
+          this.config.vswitchIds = [];
+          this.config.podVswitchIds = [];
           this.getVswitches();
         }
       },
@@ -197,10 +225,9 @@ export default defineComponent({
   methods: {
     async getResourceGroups(): Promise<void> { 
       this.loadingResourceGroups = true;
-
-      const { alibabaCredentialSecret, regionId } = this.config;
+      this.allResourceGroups = [];
       try {
-        const res = await getAlibabaResourceGroups(this.$store, alibabaCredentialSecret, regionId );
+        const res = await getAlibabaResourceGroups(this.$store, this.alibabaCredentialSecret, this.regionId );
         
         this.allResourceGroups = (res?.ResourceGroups?.ResourceGroup || []).map((group: any)=>{return {value: group.Id, label:group.Name}});
 
@@ -212,10 +239,10 @@ export default defineComponent({
     },
     async getVPCs(): Promise<void> { 
       this.loadingVPCs = true;
-
-      const { alibabaCredentialSecret, regionId, resourceGroupId } = this.config;
+      this.allVPCs = [];
+      const resourceGroupId = this.config.resourceGroupId;
       try {
-        const res = await getAlibabaVpcs(this.$store, alibabaCredentialSecret, regionId, resourceGroupId );
+        const res = await getAlibabaVpcs(this.$store, this.alibabaCredentialSecret, this.regionId, resourceGroupId );
         this.allVPCs = (res?.Vpcs?.Vpc || []).map((vpc: any)=>{return {value: vpc.VpcId, label: vpc.VpcName ? vpc.VpcName : `${vpc.VpcId} - ${vpc.CidrBlock}`}});
         
       } catch (err: any) {
@@ -226,27 +253,36 @@ export default defineComponent({
     },
     async getVswitches(): Promise<void> { 
       this.loadingVswitches = true;
-
-      const { alibabaCredentialSecret, regionId, resourceGroupId, vpcId } = this.config;
+      this.allVSwitches = [];
+      const { resourceGroupId, vpcId } = this.config;
       try {
-        const res = await getAlibabaVSwitches(this.$store, alibabaCredentialSecret, regionId, vpcId, resourceGroupId );
+        const res = await getAlibabaVSwitches(this.$store, this.alibabaCredentialSecret, this.regionId, vpcId, resourceGroupId );
 
-        this.allVSwitches = (res?.VSwitches?.VSwitch || []).map((vswitch: any)=>{return {value: vswitch.VSwitchId, label: vswitch.VpcName ? vswitch.VSwitchName : vswitch.VSwitchId }});
-        
+        this.allVSwitches = (res?.VSwitches?.VSwitch || []).map((vswitch: any) => {
+          let label = vswitch.VSwitchName ? `${ vswitch.VSwitchName } (${ vswitch.VSwitchId })` : vswitch.VSwitchId;
+
+          if (vswitch.ZoneId) {
+            label += ` - ${ vswitch.ZoneId }`;
+          }
+          return { value: vswitch.VSwitchId, label };
+        });
       } catch (err: any) {
           const parsedError = err.error || '';
-          this.$emit('error', this.t('ack.networking.errors.vpcs', { e: parsedError || err }));
+          this.$emit('error', this.t('ack.networking.errors.vswitches', { e: parsedError || err }));
       }
       this.loadingVswitches = false;
     },
     async getZones(): Promise<void> { 
       this.loadingAvailabilityZones = true;
-
-      const { alibabaCredentialSecret, regionId } = this.config;
+      this.allAvailabilityZones = [];
       try {
-        const res = await getAlibabaZones(this.$store, alibabaCredentialSecret, regionId );
-        this.allAvailabilityZones = (res?.Zones?.Zone || []).map((zone: any)=>{return {value: zone.ZoneId, label:zone.LocalName}});
-        
+        const res = await getAlibabaZones(this.$store, this.alibabaCredentialSecret, this.regionId, );
+        const zones = (res?.Zones?.Zone || []).map((zone: any) => ({ value: zone.ZoneId, label: zone.LocalName }));
+
+        this.allAvailabilityZones = zones;
+        if (this.isCreate && !this.chooseVPC) {
+          this.config.zoneIds = zones.map(z => z.value);
+        }
       } catch (err: any) {
           const parsedError = err.error || '';
           this.$emit('error', this.t('ack.networking.errors.zones', { e: parsedError || err }));
@@ -311,8 +347,8 @@ export default defineComponent({
               label-key="ack.networking.vpc.label"
               :options="vpcOptions"
               :loading="loadingVPCs"
-              option-key="key"
-              :multiple="true"
+              option-key="value"
+              :multiple="false"
               data-testid="ack-networking-vpcid-dropdown"
             />
           </div>
@@ -321,10 +357,12 @@ export default defineComponent({
               v-model:value="config.vswitchIds"
               :mode="mode"
               :options="vswitchIdOptions"
+              :multiple="true"
+              :loading="loadingVswitches"
               label-key="ack.networking.vpc.vswitchIds.label"
               :disabled="!isNewOrUnprovisioned"
               data-testid="ack-networking-vswitchIds-input"
-      />
+          />
           </div>
         </div>
       </div>
@@ -386,6 +424,8 @@ export default defineComponent({
           v-model:value="config.podVswitchIds"
           :mode="mode"
           :options="podVswitchIdOptions"
+          :multiple="true"
+          :loading="loadingVswitches"
           label-key="ack.networking.podVswitchIds.label"
           :disabled="!isNewOrUnprovisioned"
           data-testid="ack-networking-podVswitchIds-input"

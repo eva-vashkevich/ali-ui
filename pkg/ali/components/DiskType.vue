@@ -123,7 +123,7 @@ export default defineComponent({
             label-key="ack.nodePool.diskEncrypted.label"
         />
     </div>
-    <div class="col span-2 mb-5 ml-10">
+    <div class="col span-2 mb-5 ml-30">
          <slot name="remove"/>
     </div>
   </div>
