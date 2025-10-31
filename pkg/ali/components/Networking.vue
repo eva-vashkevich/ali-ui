@@ -216,14 +216,12 @@ export default defineComponent({
     },
     config: {
       handler: debounce(function(neu) {
-        console.log(neu)
         this.$emit('update:config', neu);
       }, 200),
       deep: true
     },
     'config.regionId': {
       handler(neu, old) {
-        console.log(neu, old)
         if (!!neu && !!old && neu !== old) {
           // Clear dependent values
           this.config.resourceGroupId = '';
@@ -256,7 +254,6 @@ export default defineComponent({
     'config.zoneIds': {
       handler(neu, old) {
         if (neu !== old) {
-          console.log('pew')
           this.zonesChanged();
         }
       },
@@ -431,14 +428,14 @@ export default defineComponent({
             :mode="mode"
             :options="[{label: t('ack.networking.vpc.default'), value: false},{label: t('ack.networking.vpc.useCustom'), value: true}]"
             :disabled="!isNewOrUnprovisioned"
-            class="ml-40"
+            class="hierarchy"
           >
           </RadioGroup>
         </div>
       </div>
       <div
         v-if="chooseVPC || !isNewOrUnprovisioned"
-        class="row mb-10 ml-40"
+        class="row mb-10 hierarchy"
       >
         <div class="row span-12">
           <div class="col span-6">
@@ -470,7 +467,7 @@ export default defineComponent({
       </div>
       <div
         v-else
-        class="row mb-10 ml-40"
+        class="row mb-10 hierarchy"
       >
         <div class="col span-4">
           <LabeledSelect
@@ -485,7 +482,7 @@ export default defineComponent({
           />
         </div>
       </div>
-      <div class="row ml-40">
+      <div class="row hierarchy">
         <Checkbox
           v-model:value="config.snatEntry"
           :disabled="!isNewOrUnprovisioned"
@@ -577,5 +574,7 @@ export default defineComponent({
 </template>
 
 <style lang="scss" scoped>
-
+.hierarchy{
+  margin-left: 24px;
+}
 </style>

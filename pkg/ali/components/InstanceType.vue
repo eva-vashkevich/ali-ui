@@ -66,32 +66,44 @@ export default defineComponent({
   },
 
   data() {
-    console.log(this.zones)
      return {
         cpu: undefined,
         memory: undefined,
         //loadingInstanceTypes: false,
         instanceTypeOptions: [],
+        typesDictionary: {},
+        localInstanceTypes: []
         //allInstanceTypes:        {},
     };
   },
   created() {
-    this.throttledGetInstanceTypes = throttle(this.getInstanceTypes, 1000);
-    this.getInstanceTypes();
+    this.throttledgetLocalInstanceTypes = throttle(this.getLocalInstanceTypes, 1000);
+    this.getLocalInstanceTypes();
   },
 
   watch: {
     zones() {
-      this.getInstanceTypes();
+      this.getLocalInstanceTypes();
     },
     cpu() {
-      this.getInstanceTypes();
+      this.getLocalInstanceTypes();
     },
     memory() {
-      this.getInstanceTypes();
+      this.getLocalInstanceTypes();
     },
-    allInstanceTypes() {
-      this.getInstanceTypes();
+    allInstanceTypes: {
+      handler(){
+      console.log('here')
+      const formatted = this.formatInstanceTypesForTable()
+      this.instanceTypeOptions = formatted;
+      },
+      deep: true
+    },
+    localInstanceTypes(){
+      console.log('there')
+      const formatted = this.formatInstanceTypesForTable()
+      console.log('peew', formatted)
+      this.instanceTypeOptions = formatted;
     }
   },
   computed: {
@@ -148,11 +160,43 @@ export default defineComponent({
       set(neu: string[]) {
         this.$emit('update:value', neu);
       }
-    }
+    },
+    instanceTypesList: {
+      get() {
+        console.log(this.instanceTypes, this.typesDictionary)
+      return this.instanceTypes.map((instanceType: string) => {
+        const fromDict = this.typesDictionary[instanceType];
+        if (!fromDict) {
+            return instanceType;
+          }
+
+          const labelParts = [instanceType];
+
+          if (fromDict.vcpus && fromDict.vcpus !== '-') {
+            labelParts.push(this.t('ack.nodePool.instanceTypes.table.labelParts.vcpus', {val: fromDict.vcpus}) ); //`${ fromDict.vcpus }vCpus`
+          }
+          if (fromDict.memory && fromDict.memory !== '-') {
+            labelParts.push(this.t('ack.nodePool.instanceTypes.table.labelParts.memory', {val: fromDict.memory}) );
+          }
+          labelParts.push(fromDict.stock);
+
+          return labelParts.join('-');
+        });
+        
+      },
+      set(neu: string[]) {
+        console.log(neu);
+        this.instanceTypes = neu.map((instanceType: string) => {
+          return instanceType.split('-')[0];
+        });
+      }
+    },
+
   },
   methods: {
     toggleInstanceType(instanceType: string, add: boolean) {
       const isSelected = this.instanceTypes.includes(instanceType);
+      const formatted = `${instanceType} - `
 
       if (add && !isSelected) {
         this.instanceTypes = [...this.instanceTypes, instanceType];
@@ -160,13 +204,13 @@ export default defineComponent({
         this.instanceTypes = this.instanceTypes.filter(t => t !== instanceType);
       }
     },
-    formatInstanceTypesForTable(resources: any) {
-      const typesDictionary = {};
-      console.log(this.config)
-      const availableZones = resources?.AvailableZones?.AvailableZone||[];
-      console.log(availableZones);
+    formatInstanceTypesForTable() {
+      console.log(this.allInstanceTypes)
+      const typesDictionaryNew = {};
+      const availableZones = this.localInstanceTypes?.AvailableZones?.AvailableZone||[];
       availableZones.forEach((zone: any) => {
-        if(zone.ZoneId && this.zones.has(zone.ZoneId) && zone.Status === STATUS_AVAILABLE){
+        const zoneAllowed = (zone.ZoneId && this.zones.has(zone.ZoneId)) || !this.isNewOrUnprovisioned
+        if(zoneAllowed && zone.Status === STATUS_AVAILABLE){
           const availableResources = zone.AvailableResources?.AvailableResource;
           availableResources.forEach((resource: any) => {
             if (resource.Type === INSTANCE_TYPE){
@@ -175,12 +219,12 @@ export default defineComponent({
               instanceTypes.forEach((type: any) => {
                 if(type.StatusCategory === WITH_STOCK || type.StatusCategory === WITHOUT_STOCK){
                   const typeValue = type.Value;
-                  if(typesDictionary[typeValue]){
-                    typesDictionary[typeValue].zones.push(zone.ZoneId);
+                  if(typesDictionaryNew[typeValue]){
+                    typesDictionaryNew[typeValue].zones.push(zone.ZoneId);
                   } else {
                     if(this.allInstanceTypes[typeValue]){
                       const fromAll: any = this.allInstanceTypes[typeValue];
-                      typesDictionary[typeValue] = {
+                      typesDictionaryNew[typeValue] = {
                         instanceFamily: fromAll.instanceTypeFamily,
                         vcpus: fromAll.cpu,
                         memory: fromAll.memory,
@@ -190,7 +234,7 @@ export default defineComponent({
                     } else {
                       const typeSplit = typeValue.split('.');
                       const family = `${typeSplit[0]}.${typeSplit[1]}`;
-                      typesDictionary[typeValue] = {
+                      typesDictionaryNew[typeValue] = {
                         instanceFamily: family,
                         vcpus: '-',
                         memory: '-',
@@ -205,23 +249,24 @@ export default defineComponent({
           })
         }
       });
-      const formatted = Object.entries(typesDictionary).map(([key, val]) => {
+      const formatted = Object.entries(typesDictionaryNew).map(([key, val]) => {
         (val as any).instanceType = key;
         return val
       });
+      this.typesDictionary = typesDictionaryNew;
       return formatted  as any;
     },
 
-    async getInstanceTypes(): Promise<void> { 
-      if (!this.isNewOrUnprovisioned) {
-        return;
-      }
+    async getLocalInstanceTypes(): Promise<void> { 
+      // if (!this.isNewOrUnprovisioned) {
+      //   return;
+      // }
       const { alibabaCredentialSecret, regionId } = this.config;
       try {
         this.instanceTypeOptions = [];
-        const res = await getAlibabaInstanceTypes(this.$store, alibabaCredentialSecret, regionId,  this.cpu, this.memory);
-        const formatted = this.formatInstanceTypesForTable(res)
-        this.instanceTypeOptions = formatted; 
+        this.localInstanceTypes = await getAlibabaInstanceTypes(this.$store, alibabaCredentialSecret, regionId,  this.cpu, this.memory);
+        //const formatted = this.formatInstanceTypesForTable()
+        //this.instanceTypeOptions = formatted; 
       } catch (err: any) {
           const parsedError = err.error || '';
           this.$emit('error', this.t('ack.errors.instanceTypes', { e: parsedError || err }));
@@ -231,8 +276,8 @@ export default defineComponent({
 });
 </script>
 <template>
-  <p class="mb-10">{{ t('ack.nodePool.instanceTypes.title')}}</p>
-
+  <h4 v-if="isNewOrUnprovisioned" class="mb-10">{{ t('ack.nodePool.instanceTypes.table.title')}}</h4>
+  <p v-if="isNewOrUnprovisioned" class="mb-10">{{ t('ack.nodePool.instanceTypes.table.subtitle') }}</p>
     <SortableTable
       v-if="isNewOrUnprovisioned"
       :loading="loadingInstanceTypes"
@@ -276,13 +321,15 @@ export default defineComponent({
       </template>
     </SortableTable>
 
-    <p class="mb-10">{{ t('ack.nodePool.instanceTypes.banner')}}</p>
+    <h4 class="mb-10">{{ t('ack.nodePool.instanceTypes.list.title')}}</h4>
+    <p class="mb-10">{{ t('ack.nodePool.instanceTypes.list.subtitle') }}</p>
     <div class="row">
       <ArrayListOrdered
-        v-model:value="instanceTypes"
+        :value="instanceTypesList"
         :mode="mode"
         :disabled="!isNewOrUnprovisioned"
-        class="col span-4"
+        :types-dictionary="typesDictionary"
+        class="col span-8"
       />
     </div>
    

@@ -30,8 +30,12 @@ ack:
     imageId:
       label: Image
     instanceTypes:
-      title: Instance types
+      list:
+        title: Instance Type Order
+        subtitle: Nodes are created based on the order of the instance types. If one instance type is unavailable, the next instance type is used. The actual instance types used to create nodes are subject to inventory availability.
       table:
+        title: Instance Types
+        subtitle: Select one or more instance types. Nodes are created based on the order of the instance types in the Instance Order list below.
         add: Add
         columns:
           instanceFamily: Instance Family
@@ -39,7 +43,10 @@ ack:
           vcpus: vCPU
           memory: Memory  
           stock: Stock Availability 
-          zones: Zones         
+          zones: Zones  
+        labelParts:
+          vcpus: '{val} vCPU'
+          memory: '{val} GB'         
       cpu:
         label: Number of vCPUs
         option: '{val} vCPU'
@@ -92,7 +99,7 @@ ack:
     serviceCidr:
       label: Service CIDR
       placeholder: 192.168.0.0/16
-      warning: 'Valid values: 10.0-255.0.0/16-24, 172.16-31.0.0/16-24, and 192.168.0.0/16-24.<br>The specified CIDR block cannot overlap with that of the selected VPC or those of the ACK clusters that are deployed in the VPC. The CIDR block cannot be modified after the cluster is created.'
+      warning: 'Valid values: 10.0-255.0.0/16-24, 172.16-31.0.0/16-24, and 192.168.0.0/16-24'
     podVswitchIds:
       label: Pod vSwitch
       auto: Pod vSwitches are automatically created from the VPC.

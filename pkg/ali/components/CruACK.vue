@@ -146,6 +146,7 @@ export default defineComponent({
       locationOptions: [] as string[],
       allVersions:          [],
       allImages: {},
+      allInstanceTypes: {},
       loadingLocations: false,
       loadingVersions:      false,
       loadingInstanceTypes:    false,
@@ -322,7 +323,6 @@ export default defineComponent({
 
     processVersions(unprocessedVersions: any): void {
       const newAllImages = {};
-      console.log(unprocessedVersions)
       const validVersions = unprocessedVersions.reduce((versions, version: any) => {
         //TODO EDIT check for current version
         if ((this.isCreate && version.creatable) || !this.isCreate) {
@@ -387,32 +387,32 @@ export default defineComponent({
       });
     },
     async getAllInstanceTypes(): Promise<void> { 
-      if (!this.isNewOrUnprovisioned) {
-        return;
-      }
       this.loadingInstanceTypes = true;
       const { alibabaCredentialSecret, regionId } = this.config;
       try {
         this.allInstanceTypes = {};
-        const res = await getAllAlibabaInstanceTypes(this.$store, alibabaCredentialSecret, regionId);
-        const fromRes = res?.InstanceTypes?.InstanceType || [];
-        fromRes.forEach((type: any) =>{
-          if(!!type.InstanceTypeId){
-            this.allInstanceTypes[type.InstanceTypeId] = {
-              instanceTypeFamily: type.InstanceTypeFamily,
-              cpu: type.CpuCoreCount,
-              memory: type.MemorySize,
-            }
-          }
-          
-        });
-        //this.throttledGetInstanceTypes();
-        } catch (err: any) {
-          const parsedError = err.error || '';
+        let nextToken;
+        do {
+          const res = await getAllAlibabaInstanceTypes(this.$store, alibabaCredentialSecret, regionId, nextToken);
+          const fromRes = res?.InstanceTypes?.InstanceType || [];
 
-          this.$emit('error', this.t('ack.errors.instanceTypes', { e: parsedError || err }));
-        }
-        this.loadingInstanceTypes = false;
+          fromRes.forEach((type: any) => {
+            if (type.InstanceTypeId) {
+              this.allInstanceTypes[type.InstanceTypeId] = {
+                instanceTypeFamily: type.InstanceTypeFamily,
+                cpu:                type.CpuCoreCount,
+                memory:             type.MemorySize,
+              };
+            }
+          });
+          nextToken = res?.NextToken;
+        } while (nextToken);
+      } catch (err: any) {
+        const parsedError = err.error || '';
+
+        this.$emit('error', this.t('ack.errors.instanceTypes', { e: parsedError || err }));
+      }
+      this.loadingInstanceTypes = false;
     },
 
   }

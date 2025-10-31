@@ -266,7 +266,7 @@ export default {
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    padding-right: 0px;
+    padding-right: 4px;
 }
   .title {
     margin-bottom: 10px;
@@ -298,7 +298,7 @@ export default {
   }
   .bttn {
     background-color: var(--tag-bg);
-    //padding: 0px 12px;
+    margin-right: 4px;
   }
   .footer {
     .protip {
