@@ -37,6 +37,10 @@ export default {
       type:    Boolean,
       default: false
     },
+    isNewOrUnprovisioned: {
+      type:    Boolean,
+      default: true
+    },
   },
   setup(props, { emit }) {
     const input = (Array.isArray(props.value) ? props.value : []).slice();
@@ -165,6 +169,7 @@ export default {
             :key="idx"
             v-model:value="row.value"
             :mode="mode"
+            :is-new-or-unprovisioned="isNewOrUnprovisioned"
           >
             <template #remove>
               <div
@@ -178,7 +183,7 @@ export default {
                 >
                   <button
                     type="button"
-                    :disabled="isView"
+                    :disabled="!isNewOrUnprovisioned"
                     class="btn role-link"
                     :data-testid="`ack-disk-group-remove-item-${idx}`"
                     :aria-label="t('generic.ariaLabel.remove', {index: idx+1})"

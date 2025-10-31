@@ -186,8 +186,7 @@ export async function getAlibabaInstanceTypeFamilies(
     alibabaCredentialSecret,
     regionId,
     "alibabaAvailableResources"
-    // "",
-    // extra
+
   );
 }
 

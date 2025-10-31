@@ -3,11 +3,8 @@ import { ref, watch, computed } from 'vue';
 import debounce from 'lodash/debounce';
 import { _EDIT, _VIEW } from '@shell/config/query-params';
 import { removeAt } from '@shell/utils/array';
-import { TextAreaAutoGrow } from '@components/Form/TextArea';
 import { clone } from '@shell/utils/object';
-import { LabeledInput } from '@components/Form/LabeledInput';
 import Tag from '@shell/components/Tag';
-const DEFAULT_PROTIP = 'Tip: Paste lines into any list field for easy bulk entry';
 
 export default {
   emits: ['add', 'remove', 'update:value'],
@@ -30,61 +27,13 @@ export default {
       type:    String,
       default: ''
     },
-    protip: {
-      type:    [String, Boolean],
-      default: DEFAULT_PROTIP,
-    },
-    showHeader: {
-      type:    Boolean,
-      default: false,
-    },
-    valueLabel: {
-      type:    String,
-      default: 'Value',
-    },
-    valuePlaceholder: {
-      type:    String,
-      default: 'e.g. bar'
-    },
     valueMultiline: {
       type:    Boolean,
       default: false,
     },
-    addClass: {
-      type:    String,
-      default: '',
-    },
-    addIcon: {
-      type:    String,
-      default: '',
-    },
-    addLabel: {
-      type:    String,
-      default: '',
-    },
-    addAllowed: {
-      type:    Boolean,
-      default: true,
-    },
-    addDisabled: {
-      type:    Boolean,
-      default: false,
-    },
-    removeLabel: {
-      type:    String,
-      default: '',
-    },
-    removeAllowed: {
-      type:    Boolean,
-      default: true,
-    },
     defaultAddValue: {
       type:    [String, Number, Object, Array],
       default: ''
-    },
-    loading: {
-      type:    Boolean,
-      default: false
     },
     disabled: {
       type:    Boolean,
@@ -99,10 +48,6 @@ export default {
       type:      Array,
       // we only want functions in the rules array
       validator: (rules) => rules.every((rule) => ['function'].includes(typeof rule))
-    },
-    a11yLabel: {
-      type:    String,
-      default: '',
     },
     componentTestid: {
       type:    String,
@@ -260,7 +205,7 @@ export default {
                   <button
                     v-if="!isView"
                     type="button"
-                    :disabled="isView"
+                    :disabled="disabled"
                     class="btn icon-x"
                     :data-testid="`${componentTestid}-remove-item-${idx}`"
                     :aria-label="t('generic.ariaLabel.remove', {index: idx+1})"
@@ -275,7 +220,7 @@ export default {
           <div class="row bttns ml-10">
             <button
               type="button"
-              :disabled="isView"
+              :disabled="disabled"
               class="btn role-tertiary bttn mr-10"
               :style="{ visibility: idx !== 0 ? 'visible' : 'hidden' }"
               :data-testid="`${componentTestid}-move-up-item-${idx}`"
@@ -287,7 +232,7 @@ export default {
             </button>
             <button
               type="button"
-              :disabled="isView"
+              :disabled="disabled"
               class="btn role-tertiary bttn"
               :style="{ visibility: idx !== rows.length - 1 ? 'visible' : 'hidden' }"
               :data-testid="`${componentTestid}-move-down-item-${idx}`"

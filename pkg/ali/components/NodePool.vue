@@ -37,9 +37,9 @@ export default defineComponent({
       type:     Object,
       required: true
     },
-    imageOptions: {
-      type:    Array,
-      default: () => []
+    allImages: {
+      type:   Object,
+      default: () => {}
     },
     loadingImages: {
       type:    Boolean,
@@ -69,13 +69,18 @@ export default defineComponent({
         this.pool.systemDiskSize = neu.size;
       }
     },
+    imageOptions(): Array<any> {
+      return Object.keys(this.allImages).map((image) => {
+        return { value: image, label: this.allImages[image].label || ''};
+      });
+    },
     image:{
       get() {
-        return {imageId: this.pool.imageId, imageType:this.pool.imageType };
+        return this.pool.imageType;
       },
-      set(neu: {imageId: string, imageType: string}) {
-        this.pool.imageId = neu.imageId;
-        this.pool.imageType = neu.imageType;
+      set(neu: string) {
+        this.pool.imageId = this.allImages[neu];
+        this.pool.imageType = neu;
       }
     }
   },
@@ -100,6 +105,7 @@ export default defineComponent({
       <div class="col span-3">
         <LabeledInput
           v-model:value.number="pool.desiredSize"
+          :disabled="!pool._isNewOrUnprovisioned"
           type="number"
           :mode="mode"
           label-key="ack.nodePool.desiredSize.label"
@@ -116,6 +122,7 @@ export default defineComponent({
           :mode="mode"
           :loading="loadingImages"
           :options="imageOptions"
+          option-key="value"
           label-key="ack.nodePool.imageId.label"
           required
           :disabled="!pool._isNewOrUnprovisioned"
@@ -127,7 +134,7 @@ export default defineComponent({
         v-model:value="pool.instanceTypes"
         :config="config"
         :mode="mode"
-        :isNewOrUnprovisioned="pool._isNewOrUnprovisioned"
+        :is-new-or-unprovisioned="pool._isNewOrUnprovisioned"
       />
     </div>
   </div>
@@ -135,7 +142,7 @@ export default defineComponent({
   <DiskType 
     v-model:value="systemDisk"
     :mode="mode"
-    :isNewOrUnprovisioned="pool._isNewOrUnprovisioned"
+    :is-new-or-unprovisioned="pool._isNewOrUnprovisioned"
     :showEncrypted="false"
     
   />
@@ -143,6 +150,8 @@ export default defineComponent({
   <DiskGroup 
     v-model:value="pool.dataDisks"
     :mode="mode"
+    :is-new-or-unprovisioned="pool._isNewOrUnprovisioned"
+    :add-disabled="!pool._isNewOrUnprovisioned"
   />
 </template>
 

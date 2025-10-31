@@ -2,12 +2,12 @@ import { IClusterProvisioner, ClusterProvisionerContext } from '@shell/core/type
 import { mapDriver } from '@shell/store/plugins';
 import { isProviderEnabled } from "@shell/utils/settings";
 import type { Component } from 'vue';
-import CruACK from './components/CruACK.vue';
+import CruACK from "./components/CruACK.vue";
 export class ACKProvisioner implements IClusterProvisioner {
-  static ID = 'alibaba'
+  static ID = "alibaba";
 
   constructor(private context: ClusterProvisionerContext) {
-    mapDriver(this.id, 'alibaba' );
+    mapDriver(this.id, "alibaba");
   }
 
   get id(): string {
@@ -15,19 +15,19 @@ export class ACKProvisioner implements IClusterProvisioner {
   }
 
   get icon(): any {
-    return require('./icon.svg');
+    return require("./icon.svg");
   }
 
   get image(): any {
-    return require('./icon.svg');
+    return require("./icon.svg");
   }
 
   get group(): string {
-    return 'hosted';
+    return "hosted";
   }
 
   get label(): string {
-    return this.context.t('ali.label');
+    return this.context.t("ali.label");
   }
   get component(): Component {
     return CruACK;
@@ -43,13 +43,13 @@ export class ACKProvisioner implements IClusterProvisioner {
 
   get detailTabs(): any {
     return {
-      machines:     false,
-      logs:         false,
+      machines: false,
+      logs: false,
       registration: false,
-      snapshots:    false,
-      related:      true,
-      events:       false,
-      conditions:   false,
+      snapshots: false,
+      related: true,
+      events: false,
+      conditions: false,
     };
   }
 

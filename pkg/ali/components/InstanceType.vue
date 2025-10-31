@@ -249,7 +249,9 @@ export default defineComponent({
 </script>
 <template>
   <p class="mb-10">{{ t('ack.nodePool.instanceTypes.title')}}</p>
+
     <SortableTable
+      v-if="isNewOrUnprovisioned"
       :loading="loadingInstanceTypes"
       :rows="instanceTypeOptions"
       :headers="instanceTypeColumns"
@@ -290,12 +292,13 @@ export default defineComponent({
         />
       </template>
     </SortableTable>
+
     <p class="mb-10">{{ t('ack.nodePool.instanceTypes.banner')}}</p>
     <div class="row">
       <ArrayListOrdered
         v-model:value="instanceTypes"
         :mode="mode"
-        :isNewOrUnprovisioned="isNewOrUnprovisioned"
+        :disabled="!isNewOrUnprovisioned"
         class="col span-4"
       />
     </div>

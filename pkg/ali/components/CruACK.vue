@@ -45,7 +45,9 @@ export const defaultAckConfig = {
   tags:               {},
   clusterType:    'ManagedKubernetes',
   serviceCidr: '192.168.0.0/16',
-  networkPlugin: 'terway',
+  //networkPlugin: 'terway',
+  snatEntry: true,
+  endpointPublicAccess: true,
   proxyMode: 'ipvs',
   addons: [
       {
@@ -76,8 +78,10 @@ const importedDefaultCluster = {
 export const DEFAULT_NODE_GROUP_CONFIG = {
   name:'nodePool-0',
   instanceTypes: [
-    "ecs.c7.xlarge",
-    "ecs.c7a.xlarge"
+    "ecs.g6.xlarge",
+    "ecs.g7.xlarge",
+    "ecs.u1-c1m4.xlarge",
+    "ecs.g8i.xlarge"
   ],
   systemDiskCategory: "cloud_essd",
   systemDiskSize: 20,
@@ -187,9 +191,16 @@ export default defineComponent({
 
         pool._id = randomStr();
         this.normanCluster.aliConfig.nodePools = [pool];
+      } else {
+        this.normanCluster.aliConfig.nodePools.forEach((pool) => {
+          pool['_id'] = pool.nodePoolId || randomStr();
+          pool['_isNewOrUnprovisioned'] = this.isNewOrUnprovisioned;
+          pool['_validation'] = {};
+        });
       }
       this.nodePools = this.normanCluster.aliConfig.nodePools;
     }
+
   },
     watch: {
     'config.alibabaCredentialSecret'(neu) {
@@ -253,9 +264,12 @@ export default defineComponent({
 
       return sorted;
     },
-    imageOptions(): { value: any, label: string }[] {
+    allImagesForVersion(): any {
       const imagesForVersion = this.allImages[this.config?.kubernetesVersion] || [];
-      const options = !imagesForVersion ? [] : imagesForVersion.map((image)=>{return {value: {imageId: image.image_id, imageType: image.image_type}, label: image.image_name }})
+      let options = {};
+      imagesForVersion.forEach((image: any) => {
+        options[image.image_type] = {imageType: image.image_type, imageId: image.image_id, label: image.image_name}
+      });
       return options;
     }
   },
@@ -287,9 +301,6 @@ export default defineComponent({
 
     },
     async getVersions(): Promise<void> { 
-        if (!this.isNewOrUnprovisioned) {
-        return;
-      }
       this.loadingVersions = true;
 
       const { alibabaCredentialSecret, regionId } = this.config;
@@ -309,6 +320,7 @@ export default defineComponent({
 
     processVersions(unprocessedVersions: any): void {
       const newAllImages = {};
+      console.log(unprocessedVersions)
       const validVersions = unprocessedVersions.reduce((versions, version: any) => {
         //TODO EDIT check for current version
         if ((this.isCreate && version.creatable) || !this.isCreate) {
@@ -389,197 +401,186 @@ export default defineComponent({
     @error="e=>errors=e"
     @finish="save"
   >
-    <div class="row mb-20">
-      <div
-        class="col span-4"
-      >
-        <LabeledInput
-          :value="normanCluster.name"
-          :mode="mode"
-          label-key="generic.name"
-          required
-          :rules="fvGetAndReportPathRules('name')"
-          @update:value="setClusterName"
-        />
-      </div>
-      <div
-        class="col span-4"
-      >
-        <LabeledInput
-          v-model:value="normanCluster.description"
-          :mode="mode"
-          label-key="nameNsDescription.description.label"
-          :placeholder="t('nameNsDescription.description.placeholder')"
-        />
-      </div>
-    </div>
-    <div class="row mb-20">
-      <div
-        class="col span-4"
-      >
-        <SelectCredential
-          v-model:value="config.alibabaCredentialSecret"
-          data-testid="cruack-select-credential"
-          :mode="mode === VIEW ? VIEW : CREATE"
-          provider="alibaba"
-          :default-on-cancel="true"
-          :showing-form="hasCredential"
-          :cancel="cancelCredential"
-        />
-      </div>
-
-      <div
-        class="col span-4"
-      >
-        <LabeledSelect
-          v-model:value="config.regionId"
-          data-testid="cruack-regionId"
-          :mode="mode"
-          :options="locationOptions"
-          label-key="ack.location.label"
-          :loading="loadingLocations"
-          required
-          :disabled="!isNewOrUnprovisioned"
-        />
-      </div>
-      <div
-        class="col span-4"
-      >
-        <LabeledSelect
-          v-model:value="config.kubernetesVersion"
-          data-testid="cruack-kubernetesversion"
-          :mode="mode"
-          :options="versionOptions"
-          label-key="ack.kubernetesVersion.label"
-          option-key="value"
-          option-label="label"
-          :loading="loadingVersions"
-          required
-        />
-      </div>
-    </div>
-    <div
-      v-if="hasCredential"
-      class="mt-10"
-      data-testid="cruack-form"
-    >
-      <Accordion
-        v-if="isImport"
-        :open-initially="true"
-        class="mb-20"
-        title-key="ack.accordions.cluster"
-      >
-        <Import
-          v-model:cluster-name="config.clusterName"
-          v-model:cluster-id="config.clusterId"
-          :region="config.regionId"
-          :credential="config.alibabaCredentialSecret"
-          :rules="{clusterName: fvGetAndReportPathRules('clusterName')}"
-          :mode="mode"
-          data-testid="cruack-import"
-          @error="e=>errors.push(e)"
-        />
-      </Accordion>
-      <div  v-else>
-        <div><h3>{{ t('ack.nodePools.title') }}</h3></div>
-        <Tabbed
-          ref="pools"
-          class="node-pools mb-20"
-          :side-tabs="true"
-          :show-tabs-add-remove="mode !== VIEW"
-          :use-hash="false"
-          @removeTab="removePool($event)"
-          @addTab="addPool()"
-        >
-          <Tab
-            v-for="(pool) in nodePools"
-            :key="pool._id"
-            :label="pool.name || t('ack.nodePools.unnamed')"
-            :name="`${pool.name} ${i}`"
-          >
-          <NodePool
+      <div v-if="hasCredential" class="row mb-20">
+        <div class="col span-4">
+          <LabeledInput
+            :value="normanCluster.name"
             :mode="mode"
-            :config="config"
-            :pool="pool"
-            :image-options="imageOptions"
-            :loading-images="loadingImages"
+            label-key="generic.name"
+            required
+            :rules="fvGetAndReportPathRules('name')"
+            @update:value="setClusterName"
+            :disabled="!isNewOrUnprovisioned"
           />
-          </Tab>
-        </Tabbed>
+        </div>
+        <div class="col span-4">
+          <LabeledInput
+            v-model:value="normanCluster.description"
+            :mode="mode"
+            label-key="nameNsDescription.description.label"
+            :placeholder="t('nameNsDescription.description.placeholder')"
+            :disabled="!isNewOrUnprovisioned"
+          />
+        </div>
+      </div>
+      <div class="row mb-20">
+        <div :class="hasCredential ? 'col span-4' : 'col span-12'">
+          <SelectCredential
+            v-model:value="config.alibabaCredentialSecret"
+            data-testid="cruack-select-credential"
+            :mode="mode === CREATE ? CREATE : VIEW"
+            provider="alibaba"
+            :default-on-cancel="true"
+            :showing-form="hasCredential"
+            :cancel="cancelCredential"
+          />
+        </div>
 
+        <div v-if="hasCredential" class="col span-4">
+          <LabeledSelect
+            v-model:value="config.regionId"
+            data-testid="cruack-regionId"
+            :mode="mode"
+            :options="locationOptions"
+            label-key="ack.location.label"
+            :loading="loadingLocations"
+            required
+            :disabled="!isNewOrUnprovisioned"
+          />
+        </div>
+        <div v-if="hasCredential" class="col span-4">
+          <LabeledSelect
+            v-model:value="config.kubernetesVersion"
+            data-testid="cruack-kubernetesversion"
+            :mode="mode"
+            :options="versionOptions"
+            label-key="ack.kubernetesVersion.label"
+            option-key="value"
+            option-label="label"
+            :loading="loadingVersions"
+            required
+            :disabled="!isNewOrUnprovisioned"
+          />
+        </div>
+      </div>
+      <div
+      v-if="hasCredential"
+        class="mt-10"
+        data-testid="cruack-form"
+      >
         <Accordion
+          v-if="isImport"
           :open-initially="true"
           class="mb-20"
-          title-key="ack.accordions.networking"
+          title-key="ack.accordions.cluster"
         >
-          <Networking
-            v-model:config="config"
-            v-model:config-unreported-errors="configUnreportedErrors"
-            v-model:config-is-valid="configIsValid"
-            v-model:enable-network-policy="normanCluster.enableNetworkPolicy"
-            :value="value"
+          <Import
+            v-model:cluster-name="config.clusterName"
+            v-model:cluster-id="config.clusterId"
+            :region="config.regionId"
+            :credential="config.alibabaCredentialSecret"
+            :rules="{clusterName: fvGetAndReportPathRules('clusterName')}"
             :mode="mode"
-            :original-version="originalVersion"
-            :is-new-or-unprovisioned="isNewOrUnprovisioned"
+            data-testid="cruack-import"
             @error="e=>errors.push(e)"
           />
         </Accordion>
+        <div v-else>
+          <Accordion
+            :open-initially="true"
+            class="mb-20"
+            title-key="ack.accordions.networking"
+          >
+            <Networking
+              v-model:config="config"
+              v-model:config-unreported-errors="configUnreportedErrors"
+              v-model:config-is-valid="configIsValid"
+              v-model:enable-network-policy="normanCluster.enableNetworkPolicy"
+              :value="value"
+              :mode="mode"
+              :original-version="originalVersion"
+              :is-new-or-unprovisioned="isNewOrUnprovisioned"
+              @error="e=>errors.push(e)"
+            />
+          </Accordion>
+          <div><h3>{{ t('ack.nodePools.title') }}</h3></div>
+          <Tabbed
+            ref="pools"
+            class="node-pools mb-20"
+            :side-tabs="true"
+            :show-tabs-add-remove="mode !== VIEW"
+            :use-hash="false"
+            @removeTab="removePool($event)"
+            @addTab="addPool()"
+          >
+            <Tab
+              v-for="(pool) in nodePools"
+              :key="pool._id"
+              :label="pool.name || t('ack.nodePools.unnamed')"
+              :name="`${pool.name}-${pool._id}`"
+            >
+              <NodePool
+                :mode="mode"
+                :config="config"
+                :pool="pool"
+                :all-images="allImagesForVersion"
+                :loading-images="loadingImages"
+              />
+            </Tab>
+          </Tabbed>
+        </div>
         <Accordion
-          :open-initially="false"
           class="mb-20"
-          title-key="cluster.agentConfig.tabs.cluster"
+          title-key="members.memberRoles"
         >
+          <Banner
+            v-if="isEdit"
+            color="info"
+          >
+            {{ t('cluster.memberRoles.removeMessage') }}
+          </Banner>
+          <ClusterMembershipEditor
+            v-if="canManageMembers"
+            :mode="mode"
+            :parent-id="normanCluster.id ? normanCluster.id : null"
+            @membership-update="onMembershipUpdate"
+          />
+        </Accordion>
+        <Accordion
+          class="mb-20"
+          title-key="ack.accordions.labels"
+        >
+          <Labels
+            v-model:value="normanCluster"
+            :mode="mode"
+          />
+        </Accordion>
+        <Accordion
+          class="mb-20"
+          title-key="ack.accordions.advanced"
+          v-if="normanCluster.fleetAgentDeploymentCustomization || 
+            normanCluster.clusterAgentDeploymentCustomization"
+        >
+        <h4>{{ t('cluster.agentConfig.tabs.cluster') }}</h4>
         <AgentConfiguration
+           v-if="normanCluster.clusterAgentDeploymentCustomization"
               v-model:value="normanCluster.clusterAgentDeploymentCustomization"
               data-testid="rke2-cluster-agent-config"
               type="cluster"
               :mode="mode"
-              :scheduling-customization-feature-enabled=false
+              :scheduling-customization-feature-enabled="false"
+              class="mb-20"
+            />
+        <h4>{{ t('cluster.agentConfig.tabs.fleet') }}</h4>
+        <AgentConfiguration
+          v-if="normanCluster.fleetAgentDeploymentCustomization"
+              v-model:value="normanCluster.fleetAgentDeploymentCustomization"
+              data-testid="rke2-fleet-agent-config"
+              type="fleet"
+              :mode="mode"
             />
         </Accordion>
-        <Accordion
-          v-if="normanCluster.fleetAgentDeploymentCustomization"  
-          :open-initially="false"
-          class="mb-20"
-          title-key="cluster.agentConfig.tabs.fleet"
-        >
-          <AgentConfiguration
-            
-            v-model:value="normanCluster.fleetAgentDeploymentCustomization"
-            data-testid="rke2-fleet-agent-config"
-            type="fleet"
-            :mode="mode"
-          />
-        </Accordion>
       </div>
-      <Accordion
-        class="mb-20"
-        title-key="members.memberRoles"
-      >
-        <Banner
-          v-if="isEdit"
-          color="info"
-        >
-          {{ t('cluster.memberRoles.removeMessage') }}
-        </Banner>
-        <ClusterMembershipEditor
-          v-if="canManageMembers"
-          :mode="mode"
-          :parent-id="normanCluster.id ? normanCluster.id : null"
-          @membership-update="onMembershipUpdate"
-        />
-      </Accordion>
-      <Accordion
-        class="mb-20"
-        title-key="ack.accordions.labels"
-      >
-        <Labels
-          v-model:value="normanCluster"
-          :mode="mode"
-        />
-      </Accordion>
-    </div>  
-
     <template
       v-if="!hasCredential"
       #form-footer
@@ -589,14 +590,29 @@ export default defineComponent({
   </CruResource>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
+.cru-ack-content-wrapper.no-credential {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  > div {
+    flex-grow: 1;
+    display: flex;
+    > .col {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+  }
+}
+
+.fill-height {
+  flex-grow: 1;
+}
+
 .node-pools > .tab-container {
   border-top-right-radius: 8px ;
   border-bottom-right-radius: 8px ;
-  //border: 1px solid var(--border);
-  //box-shadow: 0px
 }
-// .node-pools > .tabs >.tab{
-//   border-top-left-radius: 8px ;
-// }
 </style>

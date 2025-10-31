@@ -121,6 +121,7 @@ export default defineComponent({
             v-model:value="encrypted"
             :mode="mode"
             label-key="ack.nodePool.diskEncrypted.label"
+            :disabled="!isNewOrUnprovisioned"
         />
     </div>
     <div class="col span-2 mb-5 ml-30">

@@ -20,6 +20,7 @@ ack:
     basics: Basics
     networking: Networking
     labels: Labels and Annotations
+    advanced: Advanced
   nodePool:
     name: 
       label: Node Pool Name
@@ -91,6 +92,7 @@ ack:
     serviceCidr:
       label: Service CIDR
       placeholder: 192.168.0.0/16
+      warning: 'Valid values: 10.0-255.0.0/16-24, 172.16-31.0.0/16-24, and 192.168.0.0/16-24.<br>The specified CIDR block cannot overlap with that of the selected VPC or those of the ACK clusters that are deployed in the VPC. The CIDR block cannot be modified after the cluster is created.'
     podVswitchIds:
       label: Pod vSwitch
       auto: Pod vSwitches are automatically created from the VPC.
@@ -113,3 +115,6 @@ ack:
 generic:
   moveUp: Move up
   moveDown: Move down
+validation:
+  serviceCIDR: Specified CIDR block overlaps with VPC CIDR
+  invalidCIDR: Value is not a valid CIDR
