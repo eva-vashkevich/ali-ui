@@ -25,7 +25,7 @@ import {
 export default defineComponent({
   name: 'Networking',
 
-  emits: ['validationChanged', 'error', 'update:enableNetworkPolicy', 'update:config', 'update:configIsValid', 'update:configUnreportedErrors'],
+  emits: ['validationChanged', 'error', 'update:enableNetworkPolicy', 'update:config', 'update:configIsValid', 'update:configUnreportedErrors', 'zoneChanged'],
 
   components: {
     LabeledSelect,
@@ -72,7 +72,6 @@ export default defineComponent({
   },
 
   data() {
-    console.log(this.config)
     let networkPlugin = 'terway';
     if(!!this.config.containerCidr){
       networkPlugin = 'flannel';
@@ -106,11 +105,10 @@ export default defineComponent({
   created() {
     this.getResourceGroups();
     this.getZones();
-    
-      this.getVPCs();
-      if( this.isNewOrUnprovisioned){
-        this.getVswitches();
-      }
+    this.getVPCs();
+    if( this.isNewOrUnprovisioned){
+      this.getVswitches();
+    }
       
   },
 
@@ -255,9 +253,25 @@ export default defineComponent({
       },
       immediate: true
     },
+    'config.zoneIds': {
+      handler(neu, old) {
+        if (neu !== old) {
+          console.log('pew')
+          this.zonesChanged();
+        }
+      },
+      immediate: true
+    },
+    'config.vswitchIds':{
+      handler(neu, old) {
+        if (neu !== old) {
+          this.zonesChanged();
+        }
+      },
+      immediate: true
+    },
     'config.vpcId': {
       handler(neu, old) {
-        console.log(neu, old)
         if ((!!old || !old && !!this.isNewOrUnprovisioned) && !!neu && neu !== old) {
           this.config.vswitchIds = [];
           this.config.podVswitchIds = [];
@@ -355,7 +369,6 @@ export default defineComponent({
         const zones = (res?.Zones?.Zone || []).map((zone: any) => ({ value: zone.ZoneId, label: zone.LocalName }));
 
         this.allAvailabilityZones = zones;
-        console.log(zones)
         if (this.isNewOrUnprovisioned && !this.chooseVPC) {
           this.config.zoneIds = zones.map(z => z.value);
         }
@@ -365,6 +378,19 @@ export default defineComponent({
       }
       this.loadingAvailabilityZones = false;
     },
+    zonesChanged() {
+      let zones = [];
+      if(!this.chooseVPC){
+        zones = this.config.zoneIds
+      } else {
+        this.config.vswitchIds.forEach((vswitchId: string) => {
+          const vswitch = this.allVSwitches[vswitchId];
+          zones.push(vswitch.zoneId);
+        });
+      }
+      this.$emit('zoneChanged', new Set(zones));
+    }
+
   }
 });
 </script>

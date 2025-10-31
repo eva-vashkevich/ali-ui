@@ -83,13 +83,17 @@ export async function getAlibabaClusters(
 export async function getAllAlibabaInstanceTypes(
   store: Store<any>,
   alibabaCredentialSecret: string,
-  regionId?: string
+  regionId?: string,
+  nextToken?: string
 ): Promise<any> {
+  const extra = !nextToken ? {} : { nextToken };
   return getACKOptions(
     store,
     alibabaCredentialSecret,
     regionId,
-    "alibabaInstanceTypes"
+    "alibabaInstanceTypes",
+    "",
+    extra
   );
 }
 

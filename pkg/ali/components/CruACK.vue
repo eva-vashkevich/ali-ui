@@ -26,7 +26,7 @@ import { randomStr } from '@shell/utils/string';
 import { sortable } from '@shell/utils/version';
 import { sortBy } from '@shell/utils/sort';
 import {
-  getAlibabaRegions, getAlibabaKubernetesVersions, 
+  getAlibabaRegions, getAlibabaKubernetesVersions, getAllAlibabaInstanceTypes
 } from '../util/ack';
 
 const DEFAULT_REGION = 'us-east-1';
@@ -148,11 +148,12 @@ export default defineComponent({
       allImages: {},
       loadingLocations: false,
       loadingVersions:      false,
-      //loadingInstanceTypes:    false,
+      loadingInstanceTypes:    false,
       loadingImages: false, //TODO use or remove
       fvFormRuleSets:  [],
       configUnreportedErrors: [],
-      configIsValid:          true
+      configIsValid:          true,
+      zones: new Set()
     };
   },
 
@@ -211,6 +212,7 @@ export default defineComponent({
     'config.regionId'(neu) {
         if (neu && !this.isImport) {
             this.getVersions();
+            this.getAllInstanceTypes();
         }
     },
     },
@@ -384,6 +386,35 @@ export default defineComponent({
         }
       });
     },
+    async getAllInstanceTypes(): Promise<void> { 
+      if (!this.isNewOrUnprovisioned) {
+        return;
+      }
+      this.loadingInstanceTypes = true;
+      const { alibabaCredentialSecret, regionId } = this.config;
+      try {
+        this.allInstanceTypes = {};
+        const res = await getAllAlibabaInstanceTypes(this.$store, alibabaCredentialSecret, regionId);
+        const fromRes = res?.InstanceTypes?.InstanceType || [];
+        fromRes.forEach((type: any) =>{
+          if(!!type.InstanceTypeId){
+            this.allInstanceTypes[type.InstanceTypeId] = {
+              instanceTypeFamily: type.InstanceTypeFamily,
+              cpu: type.CpuCoreCount,
+              memory: type.MemorySize,
+            }
+          }
+          
+        });
+        //this.throttledGetInstanceTypes();
+        } catch (err: any) {
+          const parsedError = err.error || '';
+
+          this.$emit('error', this.t('ack.errors.instanceTypes', { e: parsedError || err }));
+        }
+        this.loadingInstanceTypes = false;
+    },
+
   }
 });
 </script>
@@ -501,6 +532,7 @@ export default defineComponent({
               :original-version="originalVersion"
               :is-new-or-unprovisioned="isNewOrUnprovisioned"
               @error="e=>errors.push(e)"
+              @zone-changed="(val)=>zones=val"
             />
           </Accordion>
           <div><h3>{{ t('ack.nodePools.title') }}</h3></div>
@@ -524,7 +556,10 @@ export default defineComponent({
                 :config="config"
                 :pool="pool"
                 :all-images="allImagesForVersion"
+                :all-instance-types="allInstanceTypes"
                 :loading-images="loadingImages"
+                :loading-instance-types="loadingInstanceTypes"
+                :zones="zones"
               />
             </Tab>
           </Tabbed>

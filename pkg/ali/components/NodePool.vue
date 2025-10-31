@@ -45,6 +45,18 @@ export default defineComponent({
       type:    Boolean,
       default: false
     },
+    loadingInstanceTypes: {
+      type:    Boolean,
+      default: false
+    },
+    allInstanceTypes:{
+      type:   Object,
+      default: () => {}
+    },
+    zones:{
+      type:   Object,
+      default: () => new Set()
+    },
   },
 
   data() {
@@ -135,6 +147,9 @@ export default defineComponent({
         :config="config"
         :mode="mode"
         :is-new-or-unprovisioned="pool._isNewOrUnprovisioned"
+        :all-instance-types="allInstanceTypes"
+        :loading-instance-types="loadingInstanceTypes"
+        :zones="zones"
       />
     </div>
   </div>

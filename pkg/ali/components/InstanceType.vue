@@ -8,7 +8,7 @@ import UnitInput from '@shell/components/form/UnitInput.vue';
 import Banner from '@components/Banner/Banner.vue';
 import ArrayListOrdered from './ArrayListOrdered.vue';
 import { _CREATE, _EDIT, _VIEW } from '@shell/config/query-params';
-import { getAlibabaInstanceTypes, getAllAlibabaInstanceTypes } from '../util/ack';
+import { getAlibabaInstanceTypes} from '../util/ack';
 import throttle from 'lodash/throttle';
 import SortableTable from '@shell/components/SortableTable';
 
@@ -51,33 +51,47 @@ export default defineComponent({
       type:    Boolean,
       default: true
     },
+    loadingInstanceTypes: {
+      type:    Boolean,
+      default: false
+    },
+    allInstanceTypes: {
+      type:   Object,
+      default: () => {}
+    },
+    zones:{
+      type:   Object,
+      default: () => new Set()
+    },
   },
 
   data() {
+    console.log(this.zones)
      return {
         cpu: undefined,
         memory: undefined,
-        loadingInstanceTypes: false,
+        //loadingInstanceTypes: false,
         instanceTypeOptions: [],
-        allInstanceTypes:        {},
+        //allInstanceTypes:        {},
     };
   },
   created() {
-    this.throttledGetInstanceTypes = throttle(this.getInstanceTypes, 500);
-    this.getAllInstanceTypes();
+    this.throttledGetInstanceTypes = throttle(this.getInstanceTypes, 1000);
+    this.getInstanceTypes();
   },
 
   watch: {
-    'config.regionId'(neu, old) {
-      if (neu && neu !== old) {
-        this.getAllInstanceTypes();
-      }
+    zones() {
+      this.getInstanceTypes();
     },
     cpu() {
-      this.throttledGetInstanceTypes();
+      this.getInstanceTypes();
     },
     memory() {
-      this.throttledGetInstanceTypes();
+      this.getInstanceTypes();
+    },
+    allInstanceTypes() {
+      this.getInstanceTypes();
     }
   },
   computed: {
@@ -148,9 +162,11 @@ export default defineComponent({
     },
     formatInstanceTypesForTable(resources: any) {
       const typesDictionary = {};
-      const zones = resources?.AvailableZones?.AvailableZone||[];
-      zones.forEach((zone: any) => {
-        if(zone.Status === STATUS_AVAILABLE){
+      console.log(this.config)
+      const availableZones = resources?.AvailableZones?.AvailableZone||[];
+      console.log(availableZones);
+      availableZones.forEach((zone: any) => {
+        if(zone.ZoneId && this.zones.has(zone.ZoneId) && zone.Status === STATUS_AVAILABLE){
           const availableResources = zone.AvailableResources?.AvailableResource;
           availableResources.forEach((resource: any) => {
             if (resource.Type === INSTANCE_TYPE){
@@ -196,41 +212,10 @@ export default defineComponent({
       return formatted  as any;
     },
 
-    async getAllInstanceTypes(): Promise<void> { 
-      if (!this.isNewOrUnprovisioned) {
-        return;
-      }
-      this.loadingInstanceTypes = true;
-      const { alibabaCredentialSecret, regionId } = this.config;
-      try {
-        this.allInstanceTypes = {};
-        const res = await getAllAlibabaInstanceTypes(this.$store, alibabaCredentialSecret, regionId);
-        const fromRes = res?.InstanceTypes?.InstanceType || [];
-        fromRes.forEach((type: any) =>{
-          if(!!type.InstanceTypeId){
-            this.allInstanceTypes[type.InstanceTypeId] = {
-              instanceTypeFamily: type.InstanceTypeFamily,
-              cpu: type.CpuCoreCount,
-              memory: type.MemorySize,
-            }
-          }
-          
-        });
-        this.throttledGetInstanceTypes();
-        } catch (err: any) {
-          const parsedError = err.error || '';
-
-          this.$emit('error', this.t('ack.errors.instanceTypes', { e: parsedError || err }));
-        }
-        this.loadingInstanceTypes = false;
-    },
-
     async getInstanceTypes(): Promise<void> { 
       if (!this.isNewOrUnprovisioned) {
         return;
       }
-      
-
       const { alibabaCredentialSecret, regionId } = this.config;
       try {
         this.instanceTypeOptions = [];
@@ -239,10 +224,8 @@ export default defineComponent({
         this.instanceTypeOptions = formatted; 
       } catch (err: any) {
           const parsedError = err.error || '';
-
           this.$emit('error', this.t('ack.errors.instanceTypes', { e: parsedError || err }));
       }
-
     },
   }
 });
