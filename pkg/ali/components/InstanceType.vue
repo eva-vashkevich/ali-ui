@@ -1,34 +1,26 @@
-<script lang='ts'>
-import { defineComponent, PropType } from 'vue';
+<script>
+import { defineComponent } from 'vue';
 import { mapGetters } from 'vuex';
-import LabeledSelect from '@shell/components/form/LabeledSelect.vue';
-import LabeledInput from '@components/Form/LabeledInput/LabeledInput.vue';
 import Checkbox from '@components/Form/Checkbox/Checkbox.vue';
 import UnitInput from '@shell/components/form/UnitInput.vue';
-import Banner from '@components/Banner/Banner.vue';
 import ArrayListOrdered from './ArrayListOrdered.vue';
-import { _CREATE, _EDIT, _VIEW } from '@shell/config/query-params';
-import { getAlibabaInstanceTypes} from '../util/ack';
+import { _CREATE } from '@shell/config/query-params';
+import { getAlibabaInstanceTypes } from '../util/ack';
 import throttle from 'lodash/throttle';
-import SortableTable from '@shell/components/SortableTable';
+import SortableTable from '@shell/components/SortableTable/index.vue';
 
 const STATUS_AVAILABLE = 'Available';
 const INSTANCE_TYPE = 'InstanceType';
 const WITH_STOCK = 'WithStock';
 const WITHOUT_STOCK = 'WithoutStock';
 
-
 export default defineComponent({
-  name: 'InstanceType',
-
+  name:  'InstanceType',
   emits: ['update:value', 'error'],
 
   components: {
-    LabeledSelect,
-    LabeledInput,
     Checkbox,
     UnitInput,
-    Banner,
     SortableTable,
     ArrayListOrdered
   },
@@ -40,7 +32,7 @@ export default defineComponent({
     },
 
     value: {
-      type:    Array,
+      type:     Array,
       required: true
     },
     config: {
@@ -56,24 +48,22 @@ export default defineComponent({
       default: false
     },
     allInstanceTypes: {
-      type:   Object,
+      type:    Object,
       default: () => {}
     },
-    zones:{
-      type:   Object,
+    zones: {
+      type:    Object,
       default: () => new Set()
     },
   },
 
   data() {
-     return {
-        cpu: undefined,
-        memory: undefined,
-        //loadingInstanceTypes: false,
-        instanceTypeOptions: [],
-        typesDictionary: {},
-        localInstanceTypes: []
-        //allInstanceTypes:        {},
+    return {
+      cpu:                 undefined,
+      memory:              undefined,
+      instanceTypeOptions: [],
+      typesDictionary:     {},
+      localInstanceTypes:  []
     };
   },
   created() {
@@ -92,53 +82,52 @@ export default defineComponent({
       this.getLocalInstanceTypes();
     },
     allInstanceTypes: {
-      handler(){
-      console.log('here')
-      const formatted = this.formatInstanceTypesForTable()
-      this.instanceTypeOptions = formatted;
+      handler() {
+        const formatted = this.formatInstanceTypesForTable();
+
+        this.instanceTypeOptions = formatted;
       },
       deep: true
     },
-    localInstanceTypes(){
-      console.log('there')
-      const formatted = this.formatInstanceTypesForTable()
-      console.log('peew', formatted)
+    localInstanceTypes() {
+      const formatted = this.formatInstanceTypesForTable();
+
       this.instanceTypeOptions = formatted;
     }
   },
   computed: {
     ...mapGetters({ t: 'i18n/t' }),
-    instanceTypeColumns(){
+    instanceTypeColumns() {
       return [
         {
-          name: 'selected',
+          name:  'selected',
           label: ' ',
           width: 40,
           align: 'center',
         },
-        {  
+        {
           name:     'instanceFamily',
           labelKey: 'ack.nodePool.instanceTypes.table.columns.instanceFamily',
           value:    `instanceFamily`,
           sort:     `instanceFamily`,
           search:   `instanceFamily`,
-        },{
+        }, {
           name:     'instanceType',
           labelKey: 'ack.nodePool.instanceTypes.table.columns.instanceType',
           value:    `instanceType`,
-        },{
+        }, {
           name:     'vcpus',
           labelKey: 'ack.nodePool.instanceTypes.table.columns.vcpus',
           value:    `vcpus`,
           sort:     `vcpus`,
           search:   `vcpus`,
-        },{
+        }, {
           name:     'memory',
           labelKey: 'ack.nodePool.instanceTypes.table.columns.memory',
           value:    `memory`,
           sort:     `memory`,
           search:   `memory`,
-        },{
+        }, {
           name:     'stock',
           labelKey: 'ack.nodePool.instanceTypes.table.columns.stock',
           value:    `stock`,
@@ -157,36 +146,34 @@ export default defineComponent({
       get() {
         return this.value;
       },
-      set(neu: string[]) {
+      set(neu) {
         this.$emit('update:value', neu);
       }
     },
     instanceTypesList: {
       get() {
-        console.log(this.instanceTypes, this.typesDictionary)
-      return this.instanceTypes.map((instanceType: string) => {
-        const fromDict = this.typesDictionary[instanceType];
-        if (!fromDict) {
+        return this.instanceTypes.map((instanceType) => {
+          const fromDict = this.typesDictionary[instanceType];
+
+          if (!fromDict) {
             return instanceType;
           }
 
           const labelParts = [instanceType];
 
           if (fromDict.vcpus && fromDict.vcpus !== '-') {
-            labelParts.push(this.t('ack.nodePool.instanceTypes.table.labelParts.vcpus', {val: fromDict.vcpus}) ); //`${ fromDict.vcpus }vCpus`
+            labelParts.push(this.t('ack.nodePool.instanceTypes.table.labelParts.vcpus', { val: fromDict.vcpus }) );
           }
           if (fromDict.memory && fromDict.memory !== '-') {
-            labelParts.push(this.t('ack.nodePool.instanceTypes.table.labelParts.memory', {val: fromDict.memory}) );
+            labelParts.push(this.t('ack.nodePool.instanceTypes.table.labelParts.memory', { val: fromDict.memory }) );
           }
           labelParts.push(fromDict.stock);
 
           return labelParts.join('-');
         });
-        
       },
-      set(neu: string[]) {
-        console.log(neu);
-        this.instanceTypes = neu.map((instanceType: string) => {
+      set(neu) {
+        this.instanceTypes = neu.map((instanceType) => {
           return instanceType.split('-')[0];
         });
       }
@@ -194,143 +181,160 @@ export default defineComponent({
 
   },
   methods: {
-    toggleInstanceType(instanceType: string, add: boolean) {
+    toggleInstanceType(instanceType, add) {
       const isSelected = this.instanceTypes.includes(instanceType);
-      const formatted = `${instanceType} - `
 
       if (add && !isSelected) {
         this.instanceTypes = [...this.instanceTypes, instanceType];
       } else if (!add && isSelected) {
-        this.instanceTypes = this.instanceTypes.filter(t => t !== instanceType);
+        this.instanceTypes = this.instanceTypes.filter((t) => t !== instanceType);
       }
     },
     formatInstanceTypesForTable() {
-      console.log(this.allInstanceTypes)
       const typesDictionaryNew = {};
-      const availableZones = this.localInstanceTypes?.AvailableZones?.AvailableZone||[];
-      availableZones.forEach((zone: any) => {
-        const zoneAllowed = (zone.ZoneId && this.zones.has(zone.ZoneId)) || !this.isNewOrUnprovisioned
-        if(zoneAllowed && zone.Status === STATUS_AVAILABLE){
+      const availableZones = this.localInstanceTypes?.AvailableZones?.AvailableZone || [];
+
+      availableZones.forEach((zone) => {
+        const zoneAllowed = (zone.ZoneId && this.zones.has(zone.ZoneId)) || !this.isNewOrUnprovisioned;
+
+        if (zoneAllowed && zone.Status === STATUS_AVAILABLE) {
           const availableResources = zone.AvailableResources?.AvailableResource;
-          availableResources.forEach((resource: any) => {
-            if (resource.Type === INSTANCE_TYPE){
+
+          availableResources.forEach((resource) => {
+            if (resource.Type === INSTANCE_TYPE) {
               const instanceTypes = resource.SupportedResources?.SupportedResource;
-              
-              instanceTypes.forEach((type: any) => {
-                if(type.StatusCategory === WITH_STOCK || type.StatusCategory === WITHOUT_STOCK){
+
+              instanceTypes.forEach((type) => {
+                if (type.StatusCategory === WITH_STOCK || type.StatusCategory === WITHOUT_STOCK) {
                   const typeValue = type.Value;
-                  if(typesDictionaryNew[typeValue]){
+
+                  if (typesDictionaryNew[typeValue]) {
                     typesDictionaryNew[typeValue].zones.push(zone.ZoneId);
                   } else {
-                    if(this.allInstanceTypes[typeValue]){
-                      const fromAll: any = this.allInstanceTypes[typeValue];
+                    if (this.allInstanceTypes[typeValue]) {
+                      const fromAll = this.allInstanceTypes[typeValue];
+
                       typesDictionaryNew[typeValue] = {
                         instanceFamily: fromAll.instanceTypeFamily,
-                        vcpus: fromAll.cpu,
-                        memory: fromAll.memory,
-                        stock: type.StatusCategory,
-                        zones: [zone.ZoneId]
+                        vcpus:          fromAll.cpu,
+                        memory:         fromAll.memory,
+                        stock:          type.StatusCategory,
+                        zones:          [zone.ZoneId]
                       };
                     } else {
                       const typeSplit = typeValue.split('.');
-                      const family = `${typeSplit[0]}.${typeSplit[1]}`;
+                      const family = `${ typeSplit[0] }.${ typeSplit[1] }`;
+
                       typesDictionaryNew[typeValue] = {
                         instanceFamily: family,
-                        vcpus: '-',
-                        memory: '-',
-                        stock: type.StatusCategory,
-                        zones: [zone.ZoneId]
-                      }
+                        vcpus:          '-',
+                        memory:         '-',
+                        stock:          type.StatusCategory,
+                        zones:          [zone.ZoneId]
+                      };
                     }
-                }
+                  }
                 }
               });
             }
-          })
+          });
         }
       });
       const formatted = Object.entries(typesDictionaryNew).map(([key, val]) => {
-        (val as any).instanceType = key;
-        return val
+        (val).instanceType = key;
+
+        return val;
       });
+
       this.typesDictionary = typesDictionaryNew;
-      return formatted  as any;
+
+      return formatted;
     },
 
-    async getLocalInstanceTypes(): Promise<void> { 
-      // if (!this.isNewOrUnprovisioned) {
-      //   return;
-      // }
+    async getLocalInstanceTypes() {
       const { alibabaCredentialSecret, regionId } = this.config;
+
       try {
         this.instanceTypeOptions = [];
-        this.localInstanceTypes = await getAlibabaInstanceTypes(this.$store, alibabaCredentialSecret, regionId,  this.cpu, this.memory);
-        //const formatted = this.formatInstanceTypesForTable()
-        //this.instanceTypeOptions = formatted; 
-      } catch (err: any) {
-          const parsedError = err.error || '';
-          this.$emit('error', this.t('ack.errors.instanceTypes', { e: parsedError || err }));
+        this.localInstanceTypes = await getAlibabaInstanceTypes(this.$store, alibabaCredentialSecret, regionId, this.cpu, this.memory);
+      } catch (err) {
+        const parsedError = err.error || '';
+
+        this.$emit('error', this.t('ack.errors.instanceTypes', { e: parsedError || err }));
       }
     },
   }
 });
 </script>
 <template>
-  <h4 v-if="isNewOrUnprovisioned" class="mb-10">{{ t('ack.nodePool.instanceTypes.table.title')}}</h4>
-  <p v-if="isNewOrUnprovisioned" class="mb-10">{{ t('ack.nodePool.instanceTypes.table.subtitle') }}</p>
-    <SortableTable
-      v-if="isNewOrUnprovisioned"
-      :loading="loadingInstanceTypes"
-      :rows="instanceTypeOptions"
-      :headers="instanceTypeColumns"
-      :table-actions="false"
-      :row-actions="false"
-      :rows-per-page="10"
-      :paging="true"
-      key-field="instanceType"
-      
-      class="mb-30"
-      >
-      <template #header-left>
-        <div class="row">
-          <div class="col span-3">
-            <UnitInput
-              v-model:value="cpu"
-              :mode="mode"
-              placeholder-key="ack.nodePool.instanceTypes.cpu.label"
-              suffix="vCPU"
-              type="number"
-            />
-          </div>
-          <div class="col span-3">
-            <UnitInput
-              v-model:value="memory"
-              type="number"
-              :mode="mode"
-              placeholder-key="ack.nodePool.instanceTypes.memory.label"
-              suffix="GiB"
-            />
-          </div>
-        </div>
-      </template>
-      <template #cell:selected="{ row }">
-        <Checkbox
-          :value="instanceTypes.includes(row.instanceType)"
-          @update:value="toggleInstanceType(row.instanceType, $event)"
-        />
-      </template>
-    </SortableTable>
+  <h4
+    v-if="isNewOrUnprovisioned"
+    class="mb-10"
+  >
+    {{ t('ack.nodePool.instanceTypes.table.title') }}
+  </h4>
+  <p
+    v-if="isNewOrUnprovisioned"
+    class="mb-10"
+  >
+    {{ t('ack.nodePool.instanceTypes.table.subtitle') }}
+  </p>
+  <SortableTable
+    v-if="isNewOrUnprovisioned"
+    :loading="loadingInstanceTypes"
+    :rows="instanceTypeOptions"
+    :headers="instanceTypeColumns"
+    :table-actions="false"
+    :row-actions="false"
+    :rows-per-page="10"
+    :paging="true"
+    key-field="instanceType"
 
-    <h4 class="mb-10">{{ t('ack.nodePool.instanceTypes.list.title')}}</h4>
-    <p class="mb-10">{{ t('ack.nodePool.instanceTypes.list.subtitle') }}</p>
-    <div class="row">
-      <ArrayListOrdered
-        :value="instanceTypesList"
-        :mode="mode"
-        :disabled="!isNewOrUnprovisioned"
-        :types-dictionary="typesDictionary"
-        class="col span-8"
+    class="mb-30"
+  >
+    <template #header-left>
+      <div class="row">
+        <div class="col span-3">
+          <UnitInput
+            v-model:value="cpu"
+            :mode="mode"
+            placeholder-key="ack.nodePool.instanceTypes.cpu.label"
+            suffix="vCPU"
+            type="number"
+          />
+        </div>
+        <div class="col span-3">
+          <UnitInput
+            v-model:value="memory"
+            type="number"
+            :mode="mode"
+            placeholder-key="ack.nodePool.instanceTypes.memory.label"
+            suffix="GiB"
+          />
+        </div>
+      </div>
+    </template>
+    <template #cell:selected="{ row }">
+      <Checkbox
+        :value="instanceTypes.includes(row.instanceType)"
+        @update:value="toggleInstanceType(row.instanceType, $event)"
       />
-    </div>
-   
+    </template>
+  </SortableTable>
+
+  <h4 class="mb-10">
+    {{ t('ack.nodePool.instanceTypes.list.title') }}
+  </h4>
+  <p class="mb-10">
+    {{ t('ack.nodePool.instanceTypes.list.subtitle') }}
+  </p>
+  <div class="row">
+    <ArrayListOrdered
+      :value="instanceTypesList"
+      :mode="mode"
+      :disabled="!isNewOrUnprovisioned"
+      :types-dictionary="typesDictionary"
+      class="col span-8"
+    />
+  </div>
 </template>

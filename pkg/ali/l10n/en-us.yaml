@@ -117,7 +117,13 @@ ack:
       snatEntry:
         label: Configure SNAT for VPC
   errors:
-    versions: 'An error occurred while fetching the available kubernetes versions: {e}'
+    versions: 'An error occurred while fetching available kubernetes versions: {e}'
+    zones: 'An error occurred while fetching available zones: {e}'
+    vswitches: 'An error occurred while fetching available vSwitches: {e}'
+    vpcs: 'An error occurred while fetching available VPCs: {e}'
+    resourceGroups: 'An error occurred while fetching available resource groups: {e}'
+    instanceTypes: 'An error occurred while fetching available instance types: {e}'
+    regions: 'An error occurred while fetching available regions: {e}'
 
 generic:
   moveUp: Move up

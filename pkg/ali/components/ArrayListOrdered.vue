@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 import { _EDIT, _VIEW } from '@shell/config/query-params';
 import { removeAt } from '@shell/utils/array';
 import { clone } from '@shell/utils/object';
-import Tag from '@shell/components/Tag';
+import Tag from '@shell/components/Tag.vue';
 
 export default {
   emits: ['add', 'remove', 'update:value'],
@@ -39,19 +39,9 @@ export default {
       type:    Boolean,
       default: false,
     },
-    required: {
-      type:    Boolean,
-      default: false
-    },
-    rules: {
-      default:   () => [],
-      type:      Array,
-      // we only want functions in the rules array
-      validator: (rules) => rules.every((rule) => ['function'].includes(typeof rule))
-    },
     componentTestid: {
       type:    String,
-      default: 'array-list',
+      default: 'array-list-ordered',
     }
   },
 
@@ -201,7 +191,6 @@ export default {
                   class=""
                 >
                   <span class="ml-10">{{ row.value }}</span>
-                  <!-- <div > -->
                   <button
                     v-if="!isView"
                     type="button"
@@ -212,7 +201,6 @@ export default {
                     role="button"
                     @click="remove(row, idx)"
                   />
-                  <!-- </div> -->
                 </Tag>
               </slot>
             </div>
@@ -268,15 +256,7 @@ export default {
     width: 100%;
     padding-right: 4px;
 }
-  .title {
-    margin-bottom: 10px;
-  }
-
-  .required {
-    color: var(--error);
-  }
-
-  .box {
+.box {
     display: grid;
     grid-template-columns: auto $array-list-remove-margin;
     align-items: center;
@@ -299,15 +279,5 @@ export default {
   .bttn {
     background-color: var(--tag-bg);
     margin-right: 4px;
-  }
-  .footer {
-    .protip {
-      float: right;
-      padding: 5px 0;
-    }
-  }
-
-  .required {
-    color: var(--error);
   }
 </style>

@@ -76,6 +76,6 @@ export function doCidrOverlap(cidr1: string, cidr2: string): boolean {
   return range1.start <= range2.end && range2.start <= range1.end;
 }
 
-export function isValidCIDR(cidr) {
+export function isValidCIDR(cidr: string) {
   return ipaddr.isValidCIDR(cidr);
 }

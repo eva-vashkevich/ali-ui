@@ -1,8 +1,8 @@
-<script lang='ts'>
+<script>
 import { mapGetters } from 'vuex';
-import { defineComponent, PropType } from 'vue';
+import { defineComponent } from 'vue';
 import debounce from 'lodash/debounce';
-import { _CREATE, _EDIT, _VIEW } from '@shell/config/query-params';
+import { _CREATE } from '@shell/config/query-params';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import FormValidation from '@shell/mixins/form-validation';
 import LabeledSelect from '@shell/components/form/LabeledSelect.vue';
@@ -15,12 +15,10 @@ import Tab from '@shell/components/Tabbed/Tab.vue';
 import Tabbed from '@shell/components/Tabbed/index.vue';
 import Accordion from '@components/Accordion/Accordion.vue';
 import Banner from '@components/Banner/Banner.vue';
-import { RadioGroup } from '@components/Form/Radio';
+import RadioGroup from '@components/Form/Radio/RadioGroup.vue';
 import { doCidrOverlap, isValidCIDR } from '../util/validation';
 
-import {
-  getAlibabaResourceGroups, getAlibabaVpcs, getAlibabaZones, getAlibabaVSwitches
-} from '../util/ack';
+import { getAlibabaResourceGroups, getAlibabaVpcs, getAlibabaZones, getAlibabaVSwitches } from '../util/ack';
 
 export default defineComponent({
   name: 'Networking',
@@ -73,20 +71,23 @@ export default defineComponent({
 
   data() {
     let networkPlugin = 'terway';
-    if(!!this.config.containerCidr){
+
+    if (!!this.config.containerCidr) {
       networkPlugin = 'flannel';
     }
+
     return {
       loadingResourceGroups:      false,
-      loadingVPCs: false,
+      loadingVPCs:              false,
       loadingAvailabilityZones: false,
-      loadingVswitches: false,
+      loadingVswitches:         false,
       allResourceGroups:          [],
-      allAvailabilityZones: [],
-      allVPCs: {},
-      allVSwitches: {},
-      chooseVPC:          false,
+      allAvailabilityZones:     [],
+      allVPCs:                  {},
+      allVSwitches:             {},
+      chooseVPC:                false,
       networkPlugin,
+      debouncedConfigUpdate:    null,
       fvFormRuleSets:             [
         {
           path:       'containerCidr',
@@ -103,38 +104,40 @@ export default defineComponent({
   },
 
   created() {
+    this.debouncedConfigUpdate = debounce((neu) => {
+      this.$emit('update:config', neu);
+    }, 200);
     this.getResourceGroups();
     this.getZones();
     this.getVPCs();
-    if( this.isNewOrUnprovisioned){
+    if ( this.isNewOrUnprovisioned) {
       this.getVswitches();
     }
-      
   },
 
   computed: {
     ...mapGetters({ t: 'i18n/t' }),
-    alibabaCredentialSecret(): string {
+    alibabaCredentialSecret() {
       return this.config.alibabaCredentialSecret;
     },
-    regionId(): string {
+    regionId() {
       return this.config.regionId;
     },
 
     fvExtraRules() {
       return {
         validCIDR: (val) => {
-          return !val ||isValidCIDR(val) ? null : this.t('validation.invalidCIDR');
+          return !val || isValidCIDR(val) ? null : this.t('validation.invalidCIDR');
         },
         serviceCidrCannotMatchVswitchIP: () => {
           const vpcCidr = this.allVPCs[this.config.vpcId]?.cidr;
           const serviceCidr = this.config.serviceCidr;
-          
+
           return doCidrOverlap(vpcCidr, serviceCidr) ? this.t('validation.serviceCIDR') : null;
         }
       };
     },
-    networkPluginOptions(): Array<any> {
+    networkPluginOptions() {
       return [
         {
           value:    'flannel',
@@ -146,7 +149,7 @@ export default defineComponent({
         }
       ];
     },
-    proxyModeOptions(): Array<any> {
+    proxyModeOptions() {
       return [
         {
           value:    'iptables',
@@ -158,38 +161,42 @@ export default defineComponent({
         }
       ];
     },
-    isFlannel(): boolean {
+    isFlannel() {
       return this.networkPlugin === 'flannel';
     },
-    isTerway(): boolean {
+    isTerway() {
       return this.networkPlugin === 'terway';
     },
-    resourceGroupOptions(): { value: string, label: string}[] {
-      const out = [{value: '', label: this.t('ack.networking.resourceGroupId.default')}, ...this.allResourceGroups];
+    resourceGroupOptions() {
+      const out = [{ value: '', label: this.t('ack.networking.resourceGroupId.default') }, ...this.allResourceGroups];
+
       return out;
     },
-    vpcOptions(): Array<any> {
+    vpcOptions() {
       return Object.keys(this.allVPCs).map((vpcId) => {
-        return { value: vpcId, label: this.allVPCs[vpcId].label || ''};
+        return { value: vpcId, label: this.allVPCs[vpcId].label || '' };
       });
     },
-    availabilityZoneOptions(): Array<any> {
+    availabilityZoneOptions() {
       return this.allAvailabilityZones;
     },
-    podVswitchIdOptions(): Array<any> {
+    podVswitchIdOptions() {
       const unformatted = this.config?.vswitchIds || [];
-      return unformatted.map((vswitchId) => {return {value: vswitchId, label: this.allVSwitches[vswitchId].label || ''}});
+
+      return unformatted.map((vswitchId) => {
+        return { value: vswitchId, label: this.allVSwitches[vswitchId].label || '' };
+      });
     },
-    vswitchIdOptions(): Array<any> {
+    vswitchIdOptions() {
       return Object.keys(this.allVSwitches).map((vswitchId) => {
-        return { value: vswitchId, label: this.allVSwitches[vswitchId].label || ''};
+        return { value: vswitchId, label: this.allVSwitches[vswitchId].label || '' };
       });
     },
   },
 
   watch: {
     chooseVPC(isCustom) {
-      if (this.isNewOrUnprovisioned) { // Only when creating
+      if (this.isNewOrUnprovisioned) {
         if (isCustom) {
           this.config.zoneIds = [];
         } else {
@@ -197,7 +204,7 @@ export default defineComponent({
           this.config.vswitchIds = [];
           this.config.podVswitchIds = [];
           if (this.allAvailabilityZones.length) {
-            this.config.zoneIds = this.allAvailabilityZones.map(z => z.value);
+            this.config.zoneIds = this.allAvailabilityZones.map((z) => z.value);
           }
         }
       }
@@ -215,22 +222,22 @@ export default defineComponent({
       }
     },
     config: {
-      handler: debounce(function(neu) {
-        this.$emit('update:config', neu);
-      }, 200),
-      deep: true
+      handler(neu) {
+        if (this.debouncedConfigUpdate) {
+          this.debouncedConfigUpdate(neu);
+        }
+      },
+      deep: true,
     },
     'config.regionId': {
       handler(neu, old) {
         if (!!neu && !!old && neu !== old) {
-          // Clear dependent values
           this.config.resourceGroupId = '';
           this.config.vpcId = '';
           this.config.vswitchIds = [];
           this.config.podVswitchIds = [];
           this.config.zoneIds = [];
 
-          // Fetch new options
           this.getResourceGroups();
           this.getZones();
         }
@@ -240,12 +247,10 @@ export default defineComponent({
     'config.resourceGroupId': {
       handler(neu, old) {
         if (!!old && !!neu && neu !== old) {
-          // Clear dependent values
           this.config.vpcId = '';
           this.config.vswitchIds = [];
           this.config.podVswitchIds = [];
 
-          // Fetch new options
           this.getVPCs();
         }
       },
@@ -259,7 +264,7 @@ export default defineComponent({
       },
       immediate: true
     },
-    'config.vswitchIds':{
+    'config.vswitchIds': {
       handler(neu, old) {
         if (neu !== old) {
           this.zonesChanged();
@@ -269,7 +274,7 @@ export default defineComponent({
     },
     'config.vpcId': {
       handler(neu, old) {
-        if ((!!old || !old && !!this.isNewOrUnprovisioned) && !!neu && neu !== old) {
+        if ((!!old || (!old && !!this.isNewOrUnprovisioned)) && !!neu && neu !== old) {
           this.config.vswitchIds = [];
           this.config.podVswitchIds = [];
           this.getVswitches();
@@ -282,106 +287,113 @@ export default defineComponent({
         this.config.containerCidr = '10.0.0.0/8';
         delete this.config.podVswitchIds;
         this.config.addons = [
-          {
-            "name": "flannel"
-          }
-        ] 
+          { name: 'flannel' }
+        ];
       } else {
         delete this.config.containerCidr;
         this.config.addons = [
-          {
-            "name": "terway-eniip"
-          }
-        ] 
+          { name: 'terway-eniip' }
+        ];
       }
     },
   },
 
   methods: {
-    async getResourceGroups(): Promise<void> { 
+    async getResourceGroups() {
       this.loadingResourceGroups = true;
       this.allResourceGroups = [];
       try {
         const res = await getAlibabaResourceGroups(this.$store, this.alibabaCredentialSecret, this.regionId );
-        
-        this.allResourceGroups = (res?.ResourceGroups?.ResourceGroup || []).map((group: any)=>{return {value: group.Id, label:group.Name}});
 
-      } catch (err: any) {
-          const parsedError = err.error || '';
-          this.$emit('error', this.t('ack.networking.errors.resourceGroups', { e: parsedError || err }));
+        this.allResourceGroups = (res?.ResourceGroups?.ResourceGroup || []).map((group) => {
+          return { value: group.Id, label: group.Name };
+        });
+      } catch (err) {
+        const parsedError = err.error || '';
+
+        this.$emit('error', this.t('ack.errors.resourceGroups', { e: parsedError || err }));
       }
       this.loadingResourceGroups = false;
     },
-    async getVPCs(): Promise<void> { 
+    async getVPCs() {
       this.loadingVPCs = true;
       this.allVPCs = {};
       const resourceGroupId = this.config.resourceGroupId;
+
       try {
         const res = await getAlibabaVpcs(this.$store, this.alibabaCredentialSecret, this.regionId, resourceGroupId );
         const vpcs = res?.Vpcs?.Vpc || [];
-        vpcs.forEach((vpc: any) => {
+
+        vpcs.forEach((vpc) => {
           let label = vpc.VpcName ? `${ vpc.VpcName } (${ vpc.VpcId })` : vpc.VpcId;
+
           if (vpc.CidrBlock) {
             label += ` - ${ vpc.CidrBlock }`;
           }
 
-        this.allVPCs[vpc.VpcId] = {label: label, cidr: vpc.CidrBlock};
+          this.allVPCs[vpc.VpcId] = { label, cidr: vpc.CidrBlock };
         });
-        
-      } catch (err: any) {
-          const parsedError = err.error || '';
-          this.$emit('error', this.t('ack.networking.errors.vpcs', { e: parsedError || err }));
+      } catch (err) {
+        const parsedError = err.error || '';
+
+        this.$emit('error', this.t('ack.errors.vpcs', { e: parsedError || err }));
       }
       this.loadingVPCs = false;
     },
-    async getVswitches(): Promise<void> { 
+    async getVswitches() {
       this.loadingVswitches = true;
       this.allVSwitches = {};
       const { resourceGroupId, vpcId } = this.config;
+
       try {
         const res = await getAlibabaVSwitches(this.$store, this.alibabaCredentialSecret, this.regionId, vpcId, resourceGroupId );
         const vSwitches = res?.VSwitches?.VSwitch || [];
 
-        vSwitches.forEach((vswitch: any) => {
+        vSwitches.forEach((vswitch) => {
           let label = vswitch.VSwitchName ? `${ vswitch.VSwitchName } (${ vswitch.VSwitchId })` : vswitch.VSwitchId;
+
           if (vswitch.ZoneId) {
             label += ` - ${ vswitch.ZoneId }`;
           }
           if (vswitch.CidrBlock) {
             label += ` - ${ vswitch.CidrBlock }`;
           }
-            this.allVSwitches[vswitch.VSwitchId] = {label: label, cidr: vswitch.CidrBlock};
-          });
-      } catch (err: any) {
-          const parsedError = err.error || '';
-          this.$emit('error', this.t('ack.networking.errors.vswitches', { e: parsedError || err }));
+          this.allVSwitches[vswitch.VSwitchId] = { label, cidr: vswitch.CidrBlock };
+        });
+      } catch (err) {
+        const parsedError = err.error || '';
+
+        this.$emit('error', this.t('ack.errors.vswitches', { e: parsedError || err }));
       }
       this.loadingVswitches = false;
     },
-    async getZones(): Promise<void> { 
+    async getZones() {
       this.loadingAvailabilityZones = true;
       this.allAvailabilityZones = [];
       try {
-        const res = await getAlibabaZones(this.$store, this.alibabaCredentialSecret, this.regionId, );
-        const zones = (res?.Zones?.Zone || []).map((zone: any) => ({ value: zone.ZoneId, label: zone.LocalName }));
+        const res = await getAlibabaZones(this.$store, this.alibabaCredentialSecret, this.regionId );
+        const zones = (res?.Zones?.Zone || []).map((zone) => ({ value: zone.ZoneId, label: zone.LocalName }));
 
         this.allAvailabilityZones = zones;
         if (this.isNewOrUnprovisioned && !this.chooseVPC) {
-          this.config.zoneIds = zones.map(z => z.value);
+          this.config.zoneIds = zones.map((z) => z.value);
         }
-      } catch (err: any) {
-          const parsedError = err.error || '';
-          this.$emit('error', this.t('ack.networking.errors.zones', { e: parsedError || err }));
+      } catch (err) {
+        const parsedError = err.error || '';
+
+        this.$emit('error', this.t('ack.errors.zones', { e: parsedError || err }));
       }
       this.loadingAvailabilityZones = false;
     },
     zonesChanged() {
       let zones = [];
-      if(!this.chooseVPC){
-        zones = this.config.zoneIds
+
+      if (!this.chooseVPC) {
+        zones = this.config.zoneIds;
       } else {
-        this.config.vswitchIds.forEach((vswitchId: string) => {
+        this.config.vswitchIds.forEach((vswitchId) => {
           const vswitch = this.allVSwitches[vswitchId];
+
           zones.push(vswitch.zoneId);
         });
       }
@@ -421,7 +433,9 @@ export default defineComponent({
           v-if="isNewOrUnprovisioned"
           class="col span-4"
         >
-        <p class="mb-10">{{ t('ack.networking.vpc.title')}}</p>
+          <p class="mb-10">
+            {{ t('ack.networking.vpc.title') }}
+          </p>
           <RadioGroup
             v-model:value="chooseVPC"
             name="subnet-mode"
@@ -429,8 +443,7 @@ export default defineComponent({
             :options="[{label: t('ack.networking.vpc.default'), value: false},{label: t('ack.networking.vpc.useCustom'), value: true}]"
             :disabled="!isNewOrUnprovisioned"
             class="hierarchy"
-          >
-          </RadioGroup>
+          />
         </div>
       </div>
       <div
@@ -461,7 +474,7 @@ export default defineComponent({
               label-key="ack.networking.vpc.vswitchIds.label"
               :disabled="!isNewOrUnprovisioned"
               data-testid="ack-networking-vswitchIds-input"
-          />
+            />
           </div>
         </div>
       </div>
@@ -490,9 +503,9 @@ export default defineComponent({
           label-key="ack.networking.vpc.snatEntry.label"
           data-testid="ack-networking-vpc-snatEntry"
         />
+      </div>
     </div>
-    </div>
-    
+
     <div class="row mb-10">
       <div class="col span-4">
         <LabeledSelect
@@ -532,7 +545,10 @@ export default defineComponent({
           :disabled="!isNewOrUnprovisioned"
           data-testid="ack-networking-podVswitchIds-input"
         />
-        <label v-else class="">{{ t("ack.networking.podVswitchIds.auto") }}</label>
+        <label
+          v-else
+          class=""
+        >{{ t("ack.networking.podVswitchIds.auto") }}</label>
       </div>
     </div>
     <div class="row mb-10">
@@ -547,28 +563,31 @@ export default defineComponent({
         />
       </div>
       <div class="col span-8">
-      <div class="col span-4">
-        <LabeledInput
-          v-model:value="config.serviceCidr"
-          :mode="mode"
-          :disabled="!isNewOrUnprovisioned"
-          label-key="ack.networking.serviceCidr.label"
-          placeholder-key="ack.networking.serviceCidr.placeholder"
-          data-testid="ack-networking-serviceCidr-input"
-          :rules="fvGetAndReportPathRules('serviceCidr')"
-        />
+        <div class="col span-4">
+          <LabeledInput
+            v-model:value="config.serviceCidr"
+            :mode="mode"
+            :disabled="!isNewOrUnprovisioned"
+            label-key="ack.networking.serviceCidr.label"
+            placeholder-key="ack.networking.serviceCidr.placeholder"
+            data-testid="ack-networking-serviceCidr-input"
+            :rules="fvGetAndReportPathRules('serviceCidr')"
+          />
         </div>
-        <p v-clean-html="t('ack.networking.serviceCidr.warning')" class="text-muted text-small mt-5" />
+        <p
+          v-clean-html="t('ack.networking.serviceCidr.warning')"
+          class="text-muted text-small mt-5"
+        />
       </div>
     </div>
     <div class="row mb-10">
-        <Checkbox
-          v-model:value="config.endpointPublicAccess"
-          :disabled="!isNewOrUnprovisioned"
-          :mode="mode"
-          label-key="ack.networking.endpointPublicAccess.label"
-          data-testid="ack-networking-endpointPublicAccess"
-        />
+      <Checkbox
+        v-model:value="config.endpointPublicAccess"
+        :disabled="!isNewOrUnprovisioned"
+        :mode="mode"
+        label-key="ack.networking.endpointPublicAccess.label"
+        data-testid="ack-networking-endpointPublicAccess"
+      />
     </div>
   </div>
 </template>

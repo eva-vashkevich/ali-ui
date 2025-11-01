@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
 import { _EDIT } from '@shell/config/query-params';
 import debounce from 'lodash/debounce';
 import LabeledSelect from '@shell/components/form/LabeledSelect.vue';
@@ -11,7 +11,7 @@ export default {
 
   components: { LabeledSelect, LabeledInput },
 
-  props: { 
+  props: {
     mode: {
       type:    String,
       default: _EDIT
@@ -77,7 +77,9 @@ export default {
       try {
         const res = await getAlibabaClusters(this.$store, this.credential, this.region );
 
-        this.clusters = res?.clusters?.map((c: any) => {return {name:c.name, id:c.cluster_id} }) || [];
+        this.clusters = res?.clusters?.map((c) => {
+          return { name: c.name, id: c.cluster_id };
+        }) || [];
       } catch (err) {
         this.$emit('error', err);
       }

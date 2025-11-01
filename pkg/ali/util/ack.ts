@@ -4,7 +4,7 @@ import { Store } from 'vuex';
 async function getACKOptions(
   store: any,
   alibabaCredentialSecret: string,
-  regionId: string | null,
+  regionId: string | undefined,
   resource: string,
   clusterId?: string,
   extra?: object
