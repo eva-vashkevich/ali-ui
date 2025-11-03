@@ -1,14 +1,14 @@
 {
   "name": "ali-ui",
   "description": "Create Alibaba Cloud clusters in Rancher",
-  "version": "0.0.1-rc3",
+  "version": "0.0.1-rc4",
   "private": false,
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
     "@rancher/components": "0.3.0-alpha.1",
-    "@rancher/shell": "3.0.5-rc.9",
+    "@rancher/shell": "3.0.8-rc.6",
     "@types/lodash": "4.14.196",
     "cache-loader": "4.1.0",
     "color": "4.2.3",
