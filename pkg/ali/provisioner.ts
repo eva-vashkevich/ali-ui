@@ -1,6 +1,6 @@
 import { IClusterProvisioner, ClusterProvisionerContext } from '@shell/core/types';
 import { mapDriver } from '@shell/store/plugins';
-
+import { isProviderEnabled } from "@shell/utils/settings";
 export class ACKProvisioner implements IClusterProvisioner {
   static ID = 'alibaba'
 
@@ -29,7 +29,11 @@ export class ACKProvisioner implements IClusterProvisioner {
   }
 
   get hidden(): boolean {
-    return false;
+    return !isProviderEnabled(this.context, this.id);
+  }
+  
+  get prime(): boolean {
+    return true;
   }
 
   get detailTabs(): any {
