@@ -21,7 +21,7 @@ export class ACKProvisioner implements IClusterProvisioner {
   }
 
   get group(): string {
-    return 'kontainer';
+    return 'hosted';
   }
 
   get label(): string {
