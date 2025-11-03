@@ -2440,15 +2440,15 @@
   dependencies:
     lodash.debounce "4.0.8"
 
-"@rancher/icons@2.0.38":
-  version "2.0.38"
-  resolved "https://registry.yarnpkg.com/@rancher/icons/-/icons-2.0.38.tgz#29c86d9af699909070e45c3146325f1d31d1535c"
-  integrity sha512-biVHLVwiuModxOCgM5YhPVwbu9LmZFQAQ1YWlRUiAHyFe7zh3lmw2KWEdg4k0963it1DMKuMve45VWYU5YeaWA==
+"@rancher/icons@2.0.53":
+  version "2.0.53"
+  resolved "https://registry.yarnpkg.com/@rancher/icons/-/icons-2.0.53.tgz#0cbfd0f7d16bd8c99683654d83de99e77d2424c9"
+  integrity sha512-FkJsVZihlbZiaXI5E42W05jQGlV8HRUrWbIK2zg2JkGCLUO3mvratLGL2Yjx8dFz34y37h11DsH9+nFPoHuppA==
 
-"@rancher/shell@3.0.5-rc.9":
-  version "3.0.5-rc.9"
-  resolved "https://registry.yarnpkg.com/@rancher/shell/-/shell-3.0.5-rc.9.tgz#ddf6f5b22dca57c941ac461cf8fb47a496b5adc0"
-  integrity sha512-AC0hYfnjTsBeKvNUV6vxZci8Led8UuM6peweuceyyDoWnkxA5CO75CxHfFkSyvwJKjbHvWo9uLi3Pbo1v5I22w==
+"@rancher/shell@3.0.8-rc.6":
+  version "3.0.8-rc.6"
+  resolved "https://registry.yarnpkg.com/@rancher/shell/-/shell-3.0.8-rc.6.tgz#95ac94266d9b1102cf3959682de0c1ed12dafab5"
+  integrity sha512-6M62491vNQPjJOsd+8lXs6aYXjpyGy6+irpwWYxmASFwDr5cDQN0ajbZCi1HcksCftm4dlsF+xmBqf2/i5pHsg==
   dependencies:
     "@aws-sdk/client-ec2" "3.863.0"
     "@aws-sdk/client-eks" "3.879.0"
@@ -2460,7 +2460,7 @@
     "@babel/preset-typescript" "7.16.7"
     "@novnc/novnc" "1.2.0"
     "@popperjs/core" "2.11.8"
-    "@rancher/icons" "2.0.38"
+    "@rancher/icons" "2.0.53"
     "@smithy/fetch-http-handler" "5.1.1"
     "@types/is-url" "1.2.30"
     "@types/node" "20.10.8"
@@ -2516,7 +2516,7 @@
     express "4.17.1"
     file-saver "2.0.2"
     floating-vue "5.2.2"
-    focus-trap "7.6.2"
+    focus-trap "7.6.5"
     frontmatter-markdown-loader "3.7.0"
     identicon.js "2.3.3"
     intl-messageformat "7.8.4"
@@ -7850,10 +7850,10 @@ floating-vue@5.2.2:
     "@floating-ui/dom" "~1.1.1"
     vue-resize "^2.0.0-alpha.1"
 
-focus-trap@7.6.2:
-  version "7.6.2"
-  resolved "https://registry.yarnpkg.com/focus-trap/-/focus-trap-7.6.2.tgz#a501988821ca23d0150a7229eb7a20a3695bdf0e"
-  integrity sha512-9FhUxK1hVju2+AiQIDJ5Dd//9R2n2RAfJ0qfhF4IHGHgcoEUTMpbTeG/zbEuwaiYXfuAH6XE0/aCyxDdRM+W5w==
+focus-trap@7.6.5:
+  version "7.6.5"
+  resolved "https://registry.yarnpkg.com/focus-trap/-/focus-trap-7.6.5.tgz#56f0814286d43c1a2688e9bc4f31f17ae047fb76"
+  integrity sha512-7Ke1jyybbbPZyZXFxEftUtxFGLMpE2n6A+z//m4CRDlj0hW+o3iYSmh8nFlYMurOiJVDmJRilUQtJr08KfIxlg==
   dependencies:
     tabbable "^6.2.0"
 
