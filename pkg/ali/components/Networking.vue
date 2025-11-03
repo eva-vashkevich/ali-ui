@@ -424,7 +424,6 @@ export default defineComponent({
           option-key="value"
           option-label="label"
           :loading="loadingResourceGroups"
-          required
           :disabled="!isNewOrUnprovisioned"
         />
       </div>
@@ -464,6 +463,7 @@ export default defineComponent({
               option-key="value"
               :multiple="false"
               data-testid="ack-networking-vpcid-dropdown"
+              required
             />
           </div>
           <div class="col span-6">
@@ -476,6 +476,7 @@ export default defineComponent({
               label-key="ack.networking.vpc.vswitchIds.label"
               :disabled="!isNewOrUnprovisioned"
               data-testid="ack-networking-vswitchIds-input"
+              required
             />
           </div>
         </div>
@@ -494,6 +495,7 @@ export default defineComponent({
             :mode="mode"
             :multiple="true"
             :taggable="true"
+            required
           />
         </div>
       </div>
@@ -530,6 +532,7 @@ export default defineComponent({
           :disabled="!isNewOrUnprovisioned"
           data-testid="ack-networking-containerCidr-input"
           :rules="fvGetAndReportPathRules('containerCidr')"
+          required
         />
       </div>
       <div
@@ -546,6 +549,7 @@ export default defineComponent({
           label-key="ack.networking.podVswitchIds.label"
           :disabled="!isNewOrUnprovisioned"
           data-testid="ack-networking-podVswitchIds-input"
+          required
         />
         <label
           v-else
@@ -574,6 +578,7 @@ export default defineComponent({
             placeholder-key="ack.networking.serviceCidr.placeholder"
             data-testid="ack-networking-serviceCidr-input"
             :rules="fvGetAndReportPathRules('serviceCidr')"
+            required
           />
         </div>
         <p

@@ -124,6 +124,7 @@ export default defineComponent({
           :min="1"
           :max="maxPools"
           data-testid="ack-pool-count-input"
+          required
         />
       </div>
     </div>

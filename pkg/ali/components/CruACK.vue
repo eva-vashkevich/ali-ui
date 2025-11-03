@@ -305,11 +305,11 @@ export default defineComponent({
       try {
         const res = await getAlibabaKubernetesVersions(this.$store, alibabaCredentialSecret, regionId, this.isEdit );
 
-        const unprocessedVersions = res.map((v) => {
+        const unprocessedVersions = (res || []).map((v) => {
           return {
             value: v.version, creatable: v.creatable, images: v.images
           };
-        }) || [];
+        });
 
         this.allVersions = this.processVersions(unprocessedVersions);
       } catch (err) {
@@ -322,14 +322,14 @@ export default defineComponent({
 
     processVersions(unprocessedVersions) {
       const newAllImages = {};
-      const validVersions = unprocessedVersions.reduce((versions, version) => {
+      const validVersions = (unprocessedVersions || []).reduce((versions, version) => {
         if ((this.isCreate && version.creatable) || !this.isCreate) {
           versions.push({ value: version.value, label: version.value });
           newAllImages[version.value] = version.images;
         }
 
         return versions;
-      });
+      }, []);
 
       this.allImages = newAllImages;
 
@@ -364,7 +364,9 @@ export default defineComponent({
     removePool(i) {
       const pool = this.nodePools[i];
 
-      removeObject(this.nodePools, pool);
+      if (pool._isNewOrUnprovisioned) {
+        removeObject(this.nodePools, pool);
+      }
     },
 
     addPool() {

@@ -103,6 +103,7 @@ export default defineComponent({
         label-key="ack.nodePool.diskCategory.label"
         option-key="value"
         option-label="label"
+        required
     />
     </div>
     <div class="col span-4">
@@ -112,6 +113,7 @@ export default defineComponent({
         label-key="ack.nodePool.diskSize.label"
         suffix="GiB"
         :disabled="!isNewOrUnprovisioned"
+        required
     />
     </div>
     <div class="col span-1 mr-10">
