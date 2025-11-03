@@ -358,7 +358,9 @@ export default defineComponent({
           if (vswitch.CidrBlock) {
             label += ` - ${ vswitch.CidrBlock }`;
           }
-          this.allVSwitches[vswitch.VSwitchId] = { label, cidr: vswitch.CidrBlock };
+          this.allVSwitches[vswitch.VSwitchId] = {
+            label, cidr: vswitch.CidrBlock, zoneId: vswitch.ZoneId
+          };
         });
       } catch (err) {
         const parsedError = err.error || '';
@@ -390,7 +392,7 @@ export default defineComponent({
 
       if (!this.chooseVPC) {
         zones = this.config.zoneIds;
-      } else {
+      } else if (this.config.vswitchIds) {
         this.config.vswitchIds.forEach((vswitchId) => {
           const vswitch = this.allVSwitches[vswitchId];
 

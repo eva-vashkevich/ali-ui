@@ -45,7 +45,6 @@ export default defineComponent({
     };
   },
   computed: {
-    //...mapGetters({ t: 'i18n/t' }),
     categoryOptions(): Array<any> {
       return [
         {
