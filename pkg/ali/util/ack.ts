@@ -198,19 +198,11 @@ export async function getAlibabaInstanceTypes(
   store: Store<any>,
   alibabaCredentialSecret: string,
   regionId: string,
-  vcpu: number,
-  memory: number
 ): Promise<any> {
   const extra: any = {
     destinationResource: "InstanceType",
     networkCategory: "vpc",
   };
-  if (!!vcpu) {
-    extra.cores = vcpu;
-  }
-  if (!!memory) {
-    extra.memory = memory;
-  }
   return getACKOptions(
     store,
     alibabaCredentialSecret,

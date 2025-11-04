@@ -67,7 +67,6 @@ export default defineComponent({
     };
   },
   created() {
-    this.throttledgetLocalInstanceTypes = throttle(this.getLocalInstanceTypes, 1000);
     this.getLocalInstanceTypes();
   },
 
@@ -76,10 +75,11 @@ export default defineComponent({
       this.getLocalInstanceTypes();
     },
     cpu() {
-      this.getLocalInstanceTypes();
+      this.instanceTypeOptions = this.formatInstanceTypesForTable();
     },
     memory() {
-      this.getLocalInstanceTypes();
+      this.instanceTypeOptions = this.formatInstanceTypesForTable()
+      
     },
     allInstanceTypes: {
       handler() {
@@ -213,15 +213,20 @@ export default defineComponent({
                   } else {
                     if (this.allInstanceTypes[typeValue]) {
                       const fromAll = this.allInstanceTypes[typeValue];
+                      const cpuMatches = !this.cpu || this.cpu && this.cpu === fromAll.cpu;
+                      const memoryMatches = !this.memory || this.memory === fromAll.memory
+                      if(cpuMatches && memoryMatches){
+                        typesDictionaryNew[typeValue] = {
+                          instanceFamily: fromAll.instanceTypeFamily,
+                          vcpus:          fromAll.cpu,
+                          memory:         fromAll.memory,
+                          stock:          type.StatusCategory,
+                          zones:          [zone.ZoneId]
+                        };
+                      }
 
-                      typesDictionaryNew[typeValue] = {
-                        instanceFamily: fromAll.instanceTypeFamily,
-                        vcpus:          fromAll.cpu,
-                        memory:         fromAll.memory,
-                        stock:          type.StatusCategory,
-                        zones:          [zone.ZoneId]
-                      };
-                    } else {
+                     //If we are filtering by CPU or memory and we do not know them for the instance type, don't add them 
+                    } else if (!this.memory && !this.cpu){ 
                       const typeSplit = typeValue.split('.');
                       const family = `${ typeSplit[0] }.${ typeSplit[1] }`;
 
@@ -247,7 +252,6 @@ export default defineComponent({
       });
 
       this.typesDictionary = typesDictionaryNew;
-
       return formatted;
     },
 
@@ -256,7 +260,7 @@ export default defineComponent({
 
       try {
         this.instanceTypeOptions = [];
-        this.localInstanceTypes = await getAlibabaInstanceTypes(this.$store, alibabaCredentialSecret, regionId, this.cpu, this.memory);
+        this.localInstanceTypes = await getAlibabaInstanceTypes(this.$store, alibabaCredentialSecret, regionId);
       } catch (err) {
         const parsedError = err.error || '';
 
