@@ -3,21 +3,12 @@ import { mapGetters } from 'vuex';
 import { defineComponent } from 'vue';
 import debounce from 'lodash/debounce';
 import { _CREATE } from '@shell/config/query-params';
-import CreateEditView from '@shell/mixins/create-edit-view';
 import FormValidation from '@shell/mixins/form-validation';
 import LabeledSelect from '@shell/components/form/LabeledSelect.vue';
 import LabeledInput from '@components/Form/LabeledInput/LabeledInput.vue';
 import Checkbox from '@components/Form/Checkbox/Checkbox.vue';
-import FileSelector from '@shell/components/form/FileSelector.vue';
-import KeyValue from '@shell/components/form/KeyValue.vue';
-import ArrayList from '@shell/components/form/ArrayList.vue';
-import Tab from '@shell/components/Tabbed/Tab.vue';
-import Tabbed from '@shell/components/Tabbed/index.vue';
-import Accordion from '@components/Accordion/Accordion.vue';
-import Banner from '@components/Banner/Banner.vue';
 import RadioGroup from '@components/Form/Radio/RadioGroup.vue';
 import { doCidrOverlap, isValidCIDR } from '../util/validation';
-
 import { getAlibabaResourceGroups, getAlibabaVpcs, getAlibabaZones, getAlibabaVSwitches } from '../util/ack';
 
 export default defineComponent({
@@ -29,17 +20,10 @@ export default defineComponent({
     LabeledSelect,
     LabeledInput,
     Checkbox,
-    FileSelector,
-    KeyValue,
-    ArrayList,
-    Tabbed,
-    Tab,
-    Accordion,
-    Banner,
     RadioGroup
   },
 
-  mixins: [CreateEditView, FormValidation],
+  mixins: [FormValidation],
 
   props: {
     mode: {
@@ -67,6 +51,11 @@ export default defineComponent({
       type:    Boolean,
       default: true
     },
+    // Needed for Validation mixin
+    value: {
+      type:     Object,
+      required: true
+    }
   },
 
   data() {
@@ -97,7 +86,12 @@ export default defineComponent({
         {
           path:       'serviceCidr',
           rootObject: this.config,
-          rules:      ['serviceCidrCannotMatchVswitchIP', 'validCIDR']
+          rules:      ['required', 'serviceCidrCannotMatchVswitchIP', 'validCIDR']
+        },
+        {
+          path:       'zoneIds',
+          rootObject: this.config,
+          rules:      ['zoneIdsRequired']
         },
       ],
     };
@@ -117,6 +111,7 @@ export default defineComponent({
 
   computed: {
     ...mapGetters({ t: 'i18n/t' }),
+
     alibabaCredentialSecret() {
       return this.config.alibabaCredentialSecret;
     },
@@ -126,14 +121,17 @@ export default defineComponent({
 
     fvExtraRules() {
       return {
-        validCIDR: (val) => {
-          return !val || isValidCIDR(val) ? null : this.t('validation.invalidCIDR');
+        zoneIdsRequired: (val) => {
+          return this.chooseVPC || this.config.zoneIds.length > 0 ? undefined : this.t('validation.zoneIdsRequired');
+        },
+        validCIDR:       (val) => {
+          return !val || isValidCIDR(val) ? undefined : this.t('validation.invalidCIDR');
         },
         serviceCidrCannotMatchVswitchIP: () => {
           const vpcCidr = this.allVPCs[this.config.vpcId]?.cidr;
           const serviceCidr = this.config.serviceCidr;
 
-          return doCidrOverlap(vpcCidr, serviceCidr) ? this.t('validation.serviceCIDR') : null;
+          return doCidrOverlap(vpcCidr, serviceCidr) ? this.t('validation.serviceCIDR') : undefined;
         }
       };
     },
@@ -212,6 +210,7 @@ export default defineComponent({
     fvFormIsValid: {
       immediate: true,
       handler(neu) {
+        console.log(neu);
         this.$emit('update:configIsValid', neu);
       }
     },
@@ -230,6 +229,21 @@ export default defineComponent({
       deep: true,
     },
     'config.regionId': {
+      handler(neu, old) {
+        if (!!neu && !!old && neu !== old) {
+          this.config.resourceGroupId = '';
+          this.config.vpcId = '';
+          this.config.vswitchIds = [];
+          this.config.podVswitchIds = [];
+          this.config.zoneIds = [];
+
+          this.getResourceGroups();
+          this.getZones();
+        }
+      },
+      immediate: true
+    },
+    'config.alibabaCredentialSecret': {
       handler(neu, old) {
         if (!!neu && !!old && neu !== old) {
           this.config.resourceGroupId = '';
@@ -496,6 +510,7 @@ export default defineComponent({
             :multiple="true"
             :taggable="true"
             required
+            :rules="fvGetAndReportPathRules('zoneIds')"
           />
         </div>
       </div>

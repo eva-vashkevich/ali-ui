@@ -71,6 +71,22 @@ export default defineComponent({
   },
 
   watch: {
+    'config.alibabaCredentialSecret': {
+      handler(neu, old) {
+        if (!!neu && !!old && neu !== old) {
+          this.getLocalInstanceTypes();
+        }
+      },
+      immediate: true
+    },
+    'config.regionId': {
+      handler(neu, old) {
+        if (!!neu && !!old && neu !== old) {
+          this.getLocalInstanceTypes();
+        }
+      },
+      immediate: true
+    },
     zones() {
       this.getLocalInstanceTypes();
     },
@@ -78,8 +94,7 @@ export default defineComponent({
       this.instanceTypeOptions = this.formatInstanceTypesForTable();
     },
     memory() {
-      this.instanceTypeOptions = this.formatInstanceTypesForTable()
-      
+      this.instanceTypeOptions = this.formatInstanceTypesForTable();
     },
     allInstanceTypes: {
       handler() {
@@ -213,9 +228,10 @@ export default defineComponent({
                   } else {
                     if (this.allInstanceTypes[typeValue]) {
                       const fromAll = this.allInstanceTypes[typeValue];
-                      const cpuMatches = !this.cpu || this.cpu && this.cpu === fromAll.cpu;
-                      const memoryMatches = !this.memory || this.memory === fromAll.memory
-                      if(cpuMatches && memoryMatches){
+                      const cpuMatches = !this.cpu || (this.cpu && this.cpu === fromAll.cpu);
+                      const memoryMatches = !this.memory || this.memory === fromAll.memory;
+
+                      if (cpuMatches && memoryMatches) {
                         typesDictionaryNew[typeValue] = {
                           instanceFamily: fromAll.instanceTypeFamily,
                           vcpus:          fromAll.cpu,
@@ -225,8 +241,8 @@ export default defineComponent({
                         };
                       }
 
-                     //If we are filtering by CPU or memory and we do not know them for the instance type, don't add them 
-                    } else if (!this.memory && !this.cpu){ 
+                      // If we are filtering by CPU or memory and we do not know them for the instance type, don't add them
+                    } else if (!this.memory && !this.cpu) {
                       const typeSplit = typeValue.split('.');
                       const family = `${ typeSplit[0] }.${ typeSplit[1] }`;
 
@@ -252,6 +268,7 @@ export default defineComponent({
       });
 
       this.typesDictionary = typesDictionaryNew;
+
       return formatted;
     },
 

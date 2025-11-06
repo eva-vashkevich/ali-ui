@@ -1,4 +1,5 @@
 import ipaddr from "ipaddr.js";
+import { get } from '@shell/utils/object';
 
 function ipToLong(ip: string): number {
   return (
@@ -58,6 +59,61 @@ export function doCidrOverlap(cidr1: string, cidr2: string): boolean {
   return range1.start <= range2.end && range2.start <= range1.end;
 }
 
+// no need to try to validate any fields if the user is still selecting a credential and the rest of the form isn't visible
+export const needsValidation = (ctx: any): Boolean => {
+  return !!ctx.config.alibabaCredentialSecret && !!ctx.config.regionId;
+};
+export const requiredTranslation = (ctx: any, labelKey = 'Value'): String => {
+  return ctx.t('validation.required', { key: ctx.t(labelKey) });
+};
+// export const locationRequired = (ctx: any) => {
+//   return () :string | undefined => {
+//     return !!ctx.config && !ctx.config.regionId ? ctx.t('validation.location.required') : undefined;
+//   }
+// };
 export function isValidCIDR(cidr: string) {
   return ipaddr.isValidCIDR(cidr);
 }
+export const requiredInCluster = (ctx: any, labelKey: string, clusterPath: string) => {
+  return () :String | undefined => {
+    return needsValidation(ctx) && clusterPath && !get(ctx, clusterPath) ? requiredTranslation(ctx, labelKey) : undefined;
+  };
+};
+
+export const clusterNameChars = (ctx: any ) => {
+  return () :string | undefined => {
+    const { name = '' } = get(ctx, 'normanCluster');
+    const nameIsValid = name.match(/^[\w-]+$/);
+
+    return !needsValidation(ctx) || nameIsValid ? undefined : ctx.t('validation.clusterName.clusterNameChars');
+  };
+};
+
+export const clusterNameStart = (ctx: any) => {
+  return () :string | undefined => {
+    const { name = '' } = get(ctx, 'normanCluster');
+    const nameIsValid = (!!name.match(/^[a-zA-Z0-9]/) || !name.length);
+
+    return !needsValidation(ctx) || nameIsValid ? undefined : ctx.t('validation.clusterName.clusterNameStart');
+  };
+};
+
+export const clusterNameLength = (ctx: any) => {
+  return () : string | undefined => {
+    const { clusterName = '' } = get(ctx, 'config');
+    const isValid = clusterName.length <= 63;
+    // The at least 1 case is covered by a separate check
+    return isValid ? undefined : ctx.t('validation.clusterName.length');
+  };
+};
+
+// export const zoneIdsRequired = (ctx: any) => {
+//   return () : string | undefined => {
+//     const { zoneIds = '' } = get(ctx, 'config');
+//     const isValid = zoneIds.length > 0;
+//     console.log(isValid);
+
+
+//     return !needsValidation(ctx) || isValid ? undefined : ctx.t('validation.zoneIds');
+//   };
+// };

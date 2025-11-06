@@ -63,7 +63,7 @@ export default defineComponent({
     return {
       osDiskTypeOptions:       ['Managed', 'Ephemeral'],
       modeOptions:             ['User', 'System'],
-      maxPools:          5000, // TODO make it cur + 500 for edit
+      maxPools:                5000
 
     };
   },

@@ -26,6 +26,13 @@ import { randomStr } from '@shell/utils/string';
 import { sortable } from '@shell/utils/version';
 import { sortBy } from '@shell/utils/sort';
 import { getAlibabaRegions, getAlibabaKubernetesVersions, getAllAlibabaInstanceTypes } from '../util/ack';
+import {
+  requiredInCluster,
+  clusterNameChars,
+  clusterNameStart,
+  clusterNameLength,
+  //locationRequired
+} from '../util/validation';
 
 const DEFAULT_REGION = 'us-east-1';
 
@@ -134,7 +141,7 @@ export default defineComponent({
   },
   data() {
     return {
-      normanCluster:          { name: '' },
+      normanCluster:          { name: '', aliConfig: {} },
       nodePools:              [],
       membershipUpdate:       {},
       originalVersion:        '',
@@ -146,10 +153,33 @@ export default defineComponent({
       loadingVersions:        false,
       loadingInstanceTypes:    false,
       loadingImages:          false,
-      fvFormRuleSets:         [],
       configUnreportedErrors: [],
       configIsValid:          true,
-      zones:                  new Set()
+      zones:                  new Set(),
+      fvFormRuleSets:         this.isImport ? [
+      {
+        path:  'name',
+        rules: ['nameRequired', 'clusterNameChars', 'clusterNameStart', 'clusterNameLength'],
+      },
+      {
+        path:  'clusterName',
+        rules: ['importedName']
+      },      
+      // { 
+      //   path:  'regionId',
+      //   rules: ['locationRequired']
+      // },
+      ] : [{
+        path:  'name',
+        rules: ['nameRequired', 'clusterNameChars', 'clusterNameStart', 'clusterNameLength'],
+      },
+
+      // { 
+      //   path:  'regionId',
+      //   rules: ['locationRequired']
+      // },
+      ],
+      
     };
   },
 
@@ -196,6 +226,10 @@ export default defineComponent({
     'config.alibabaCredentialSecret'(neu) {
       if (neu) {
         this.getLocations();
+        if (!this.isImport) {
+          this.getVersions();
+          this.getAllInstanceTypes();
+        }
       }
     },
     'config.regionId'(neu) {
@@ -213,6 +247,16 @@ export default defineComponent({
 
     VIEW() {
       return _VIEW;
+    },
+    fvExtraRules() {
+      return {
+        nameRequired:        requiredInCluster(this, 'nameNsDescription.name.label', 'normanCluster.name'),
+        clusterNameChars:    clusterNameChars(this),
+        clusterNameStart:    clusterNameStart(this),
+        clusterNameLength:   clusterNameLength(this),
+        importedName:        requiredInCluster(this, 'ali.import.label', 'config.clusterName'),
+        //locationRequired:    locationRequired(this),
+      };
     },
 
     isImport() {
@@ -304,7 +348,6 @@ export default defineComponent({
 
       try {
         const res = await getAlibabaKubernetesVersions(this.$store, alibabaCredentialSecret, regionId, this.isEdit );
-
         const unprocessedVersions = (res || []).map((v) => {
           return {
             value: v.version, creatable: v.creatable, images: v.images
@@ -315,7 +358,7 @@ export default defineComponent({
       } catch (err) {
         const parsedError = err.error || '';
 
-        this.$emit('error', this.t('ack.errors.versions', { e: parsedError || err }));
+        this.errors.push(this.t('ack.errors.versions', { e: parsedError || err }));
       }
       this.loadingVersions = false;
     },
@@ -412,7 +455,7 @@ export default defineComponent({
       } catch (err) {
         const parsedError = err.error || '';
 
-        this.$emit('error', this.t('ack.errors.instanceTypes', { e: parsedError || err }));
+        this.errors.push(this.t('ack.errors.instanceTypes', { e: parsedError || err }));
       }
       this.loadingInstanceTypes = false;
     },
@@ -429,7 +472,8 @@ export default defineComponent({
     :mode="mode"
     :can-yaml="false"
     :done-route="doneRoute"
-    :validation-passed="fvFormIsValid && configIsValid"
+    :validation-passed="fvFormIsValid && configIsValid && !!this.config.regionId"
+    :errors="fvUnreportedValidationErrors"
     @error="e=>errors=e"
     @finish="save"
   >
@@ -482,6 +526,7 @@ export default defineComponent({
           label-key="ack.location.label"
           :loading="loadingLocations"
           required
+          :rules="fvGetAndReportPathRules('regionId')"
           :disabled="!isNewOrUnprovisioned"
         />
       </div>
@@ -629,7 +674,7 @@ export default defineComponent({
       v-if="!hasCredential"
       #form-footer
     >
-      <div><!-- Hide the outer footer --></div>
+      <div></div>
     </template>
   </CruResource>
 </template>
