@@ -12,8 +12,6 @@ import DiskGroup from './DiskGroup.vue';
 export default defineComponent({
   name: 'ACKNodePool',
 
-  emits: ['update:value', 'imageChanged', 'validationChanged'],
-
   components: {
     LabeledInput,
     LabeledSelect,
@@ -159,7 +157,7 @@ export default defineComponent({
     v-model:value="systemDisk"
     :mode="mode"
     :is-new-or-unprovisioned="pool._isNewOrUnprovisioned"
-    :showEncrypted="false"
+    :show-encrypted="false"
     
   />
   <p class="mb-10">{{ t('ack.nodePool.dataDisks.title')}}</p>
@@ -171,20 +169,3 @@ export default defineComponent({
   />
 </template>
 
-<style lang="scss" scoped>
-.remove-row {
-  display: flex;
-  justify-content: flex-end;
-}
-.taints {
-  width: 100%;
-  th,:deep() td{
-    text-align: left;
-    padding-right: 10px;
-    font-weight: inherit;
-  }
-  th>* {
-    margin: 0px;
-  }
-}
-</style>

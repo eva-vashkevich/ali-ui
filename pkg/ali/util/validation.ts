@@ -66,11 +66,7 @@ export const needsValidation = (ctx: any): Boolean => {
 export const requiredTranslation = (ctx: any, labelKey = 'Value'): String => {
   return ctx.t('validation.required', { key: ctx.t(labelKey) });
 };
-// export const locationRequired = (ctx: any) => {
-//   return () :string | undefined => {
-//     return !!ctx.config && !ctx.config.regionId ? ctx.t('validation.location.required') : undefined;
-//   }
-// };
+
 export function isValidCIDR(cidr: string) {
   return ipaddr.isValidCIDR(cidr);
 }
@@ -106,14 +102,3 @@ export const clusterNameLength = (ctx: any) => {
     return isValid ? undefined : ctx.t('validation.clusterName.length');
   };
 };
-
-// export const zoneIdsRequired = (ctx: any) => {
-//   return () : string | undefined => {
-//     const { zoneIds = '' } = get(ctx, 'config');
-//     const isValid = zoneIds.length > 0;
-//     console.log(isValid);
-
-
-//     return !needsValidation(ctx) || isValid ? undefined : ctx.t('validation.zoneIds');
-//   };
-// };

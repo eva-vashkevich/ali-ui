@@ -1,5 +1,6 @@
 ali:
   label: Alibaba Cloud
+  description: Provision new Alibaba Cloud ACK (Alibaba Kubernetes Service) clusters or register existing ones.
   cloudcredential:
     accessKeyID:
       label: Access Key ID
@@ -83,7 +84,7 @@ ack:
   networking:
     resourceGroupId:
       label: Resource group
-      default: Not Selected
+      default: None
     networkPlugin:
       label: Network Plugin
       options:

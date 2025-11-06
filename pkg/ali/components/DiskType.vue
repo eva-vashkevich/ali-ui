@@ -37,13 +37,6 @@ export default defineComponent({
     }
   },
 
-  fetch() {
-  },
-
-  data() {
-     return {
-    };
-  },
   computed: {
     categoryOptions(): Array<any> {
       return [
@@ -88,7 +81,6 @@ export default defineComponent({
     }
 
   },
-  methods: {}
 
 });
 </script>

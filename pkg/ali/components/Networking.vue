@@ -1,7 +1,6 @@
 <script>
 import { mapGetters } from 'vuex';
 import { defineComponent } from 'vue';
-import debounce from 'lodash/debounce';
 import { _CREATE } from '@shell/config/query-params';
 import FormValidation from '@shell/mixins/form-validation';
 import LabeledSelect from '@shell/components/form/LabeledSelect.vue';
@@ -11,10 +10,35 @@ import RadioGroup from '@components/Form/Radio/RadioGroup.vue';
 import { doCidrOverlap, isValidCIDR } from '../util/validation';
 import { getAlibabaResourceGroups, getAlibabaVpcs, getAlibabaZones, getAlibabaVSwitches } from '../util/ack';
 
+const DEFAULT_CONTAINER_CIDR = '10.0.0.0/8';
+const BACKUP_SERVICE_CIDR = '172.16.0.0/12';
+const DEFAULT_SERVICE_CIDR = '192.168.0.0/16';
+
+const FLANNEL = 'flannel';
+const TERWAY = 'terway';
+const FLANNEL_ADDON = 'flannel';
+const TERWAY_ADDON = 'terway-eniip';
+
 export default defineComponent({
   name: 'Networking',
 
-  emits: ['validationChanged', 'error', 'update:enableNetworkPolicy', 'update:config', 'update:configIsValid', 'update:configUnreportedErrors', 'zoneChanged'],
+  emits: [
+    'error',
+    'update:enableNetworkPolicy',
+    'update:configIsValid',
+    'update:configUnreportedErrors',
+    'zoneChanged',
+    'update:resourceGroupId',
+    'update:vpcId',
+    'update:vswitchIds',
+    'update:zoneIds',
+    'update:snatEntry',
+    'update:proxyMode',
+    'update:serviceCidr',
+    'update:endpointPublicAccess',
+    'update:containerCidr',
+    'update:podVswitchIds',
+    'update:addons'],
 
   components: {
     LabeledSelect,
@@ -30,7 +54,6 @@ export default defineComponent({
       type:    String,
       default: _CREATE
     },
-
     config: {
       type:     Object,
       required: true
@@ -38,10 +61,6 @@ export default defineComponent({
     isNewOrUnprovisioned: {
       type:    Boolean,
       default: true
-    },
-    originalVersion: {
-      type:    String,
-      default: ''
     },
     configUnreportedErrors: {
       type:    Array,
@@ -55,14 +74,58 @@ export default defineComponent({
     value: {
       type:     Object,
       required: true
-    }
+    },
+    resourceGroupId: {
+      type:     String,
+      default: ''
+    },
+    vpcId: {
+      type:     String,
+      default: ''
+    },
+    vswitchIds: {
+      type:     Array,
+      default: () => []
+    },
+    zoneIds: {
+      type:     Array,
+      default: () => []
+    },
+    snatEntry: {
+      type:    Boolean,
+      default: true
+    },
+    proxyMode: {
+      type:    String,
+      default: 'ipvs'
+    },
+    serviceCidr: {
+      type:    String,
+      default: ''
+    },
+    endpointPublicAccess: {
+      type:    Boolean,
+      default: true
+    },
+    containerCidr: {
+      type:    String,
+      default: null
+    },
+    podVswitchIds: {
+      type:    Array,
+      default: () => []
+    },
+    addons: {
+      type:     Array,
+      default: () => []
+    },
   },
 
   data() {
-    let networkPlugin = 'terway';
+    let networkPlugin = TERWAY;
 
-    if (!!this.config.containerCidr) {
-      networkPlugin = 'flannel';
+    if (!!this.containerCidr) {
+      networkPlugin = FLANNEL;
     }
 
     return {
@@ -76,21 +139,20 @@ export default defineComponent({
       allVSwitches:             {},
       chooseVPC:                false,
       networkPlugin,
-      debouncedConfigUpdate:    null,
       fvFormRuleSets:             [
         {
           path:       'containerCidr',
-          rootObject: this.config,
-          rules:      ['validCIDR']
+          rootObject: this,
+          rules:      ['validCIDR', 'cidrCannotMatchVswitchIP']
         },
         {
           path:       'serviceCidr',
-          rootObject: this.config,
-          rules:      ['required', 'serviceCidrCannotMatchVswitchIP', 'validCIDR']
+          rootObject: this,
+          rules:      ['required', 'cidrCannotMatchVswitchIP', 'validCIDR']
         },
         {
           path:       'zoneIds',
-          rootObject: this.config,
+          rootObject: this,
           rules:      ['zoneIdsRequired']
         },
       ],
@@ -98,9 +160,6 @@ export default defineComponent({
   },
 
   created() {
-    this.debouncedConfigUpdate = debounce((neu) => {
-      this.$emit('update:config', neu);
-    }, 200);
     this.getResourceGroups();
     this.getZones();
     this.getVPCs();
@@ -122,27 +181,26 @@ export default defineComponent({
     fvExtraRules() {
       return {
         zoneIdsRequired: (val) => {
-          return this.chooseVPC || this.config.zoneIds.length > 0 ? undefined : this.t('validation.zoneIdsRequired');
+          return this.chooseVPC || (val && val.length > 0) ? undefined : this.t('validation.zoneIdsRequired');
         },
         validCIDR:       (val) => {
           return !val || isValidCIDR(val) ? undefined : this.t('validation.invalidCIDR');
         },
-        serviceCidrCannotMatchVswitchIP: () => {
-          const vpcCidr = this.allVPCs[this.config.vpcId]?.cidr;
-          const serviceCidr = this.config.serviceCidr;
+        cidrCannotMatchVswitchIP: (val) => {
+          const vpcCidr = this.allVPCs[this.vpcId]?.cidr;
 
-          return doCidrOverlap(vpcCidr, serviceCidr) ? this.t('validation.serviceCIDR') : undefined;
+          return doCidrOverlap(val, vpcCidr) ? this.t('validation.serviceCIDR') : undefined;
         }
       };
     },
     networkPluginOptions() {
       return [
         {
-          value:    'flannel',
+          value:    FLANNEL,
           label:    this.t('ack.networking.networkPlugin.options.flannel'),
         },
         {
-          value: 'terway',
+          value: TERWAY,
           label: this.t('ack.networking.networkPlugin.options.terway')
         }
       ];
@@ -160,10 +218,10 @@ export default defineComponent({
       ];
     },
     isFlannel() {
-      return this.networkPlugin === 'flannel';
+      return this.networkPlugin === FLANNEL;
     },
     isTerway() {
-      return this.networkPlugin === 'terway';
+      return this.networkPlugin === TERWAY;
     },
     resourceGroupOptions() {
       const out = [{ value: '', label: this.t('ack.networking.resourceGroupId.default') }, ...this.allResourceGroups];
@@ -179,30 +237,31 @@ export default defineComponent({
       return this.allAvailabilityZones;
     },
     podVswitchIdOptions() {
-      const unformatted = this.config?.vswitchIds || [];
+      const unformatted = this.vswitchIds || [];
 
       return unformatted.map((vswitchId) => {
-        return { value: vswitchId, label: this.allVSwitches[vswitchId].label || '' };
+        return { value: vswitchId, label: this.allVSwitches[vswitchId]?.label || '' };
       });
     },
     vswitchIdOptions() {
       return Object.keys(this.allVSwitches).map((vswitchId) => {
-        return { value: vswitchId, label: this.allVSwitches[vswitchId].label || '' };
+        return { value: vswitchId, label: this.allVSwitches[vswitchId]?.label || '' };
       });
     },
   },
 
   watch: {
-    chooseVPC(isCustom) {
+    chooseVPC(val) {
       if (this.isNewOrUnprovisioned) {
-        if (isCustom) {
-          this.config.zoneIds = [];
+        if (val) {
+          this.$emit('update:zoneIds', []);
+          this.$emit('update:vpcId', this.vpcOptions[0]?.value || '');
         } else {
-          this.config.vpcId = '';
-          this.config.vswitchIds = [];
-          this.config.podVswitchIds = [];
+          this.$emit('update:vpcId', '');
+          this.$emit('update:vswitchIds', []);
+          this.$emit('update:podVswitchIds', []);
           if (this.allAvailabilityZones.length) {
-            this.config.zoneIds = this.allAvailabilityZones.map((z) => z.value);
+            this.$emit('update:zoneIds', this.allAvailabilityZones.map((z) => z.value));
           }
         }
       }
@@ -210,7 +269,6 @@ export default defineComponent({
     fvFormIsValid: {
       immediate: true,
       handler(neu) {
-        console.log(neu);
         this.$emit('update:configIsValid', neu);
       }
     },
@@ -220,22 +278,15 @@ export default defineComponent({
         this.$emit('update:configUnreportedErrors', neu);
       }
     },
-    config: {
-      handler(neu) {
-        if (this.debouncedConfigUpdate) {
-          this.debouncedConfigUpdate(neu);
-        }
-      },
-      deep: true,
-    },
+
     'config.regionId': {
       handler(neu, old) {
-        if (!!neu && !!old && neu !== old) {
-          this.config.resourceGroupId = '';
-          this.config.vpcId = '';
-          this.config.vswitchIds = [];
-          this.config.podVswitchIds = [];
-          this.config.zoneIds = [];
+        if (neu && neu !== old) {
+          this.$emit('update:resourceGroupId', '');
+          this.$emit('update:vpcId', '');
+          this.$emit('update:vswitchIds', []);
+          this.$emit('update:podVswitchIds', []);
+          this.$emit('update:zoneIds', []);
 
           this.getResourceGroups();
           this.getZones();
@@ -245,12 +296,12 @@ export default defineComponent({
     },
     'config.alibabaCredentialSecret': {
       handler(neu, old) {
-        if (!!neu && !!old && neu !== old) {
-          this.config.resourceGroupId = '';
-          this.config.vpcId = '';
-          this.config.vswitchIds = [];
-          this.config.podVswitchIds = [];
-          this.config.zoneIds = [];
+        if (neu && neu !== old) {
+          this.$emit('update:resourceGroupId', '');
+          this.$emit('update:vpcId', '');
+          this.$emit('update:vswitchIds', []);
+          this.$emit('update:podVswitchIds', []);
+          this.$emit('update:zoneIds', []);
 
           this.getResourceGroups();
           this.getZones();
@@ -258,19 +309,24 @@ export default defineComponent({
       },
       immediate: true
     },
-    'config.resourceGroupId': {
-      handler(neu, old) {
-        if (!!old && !!neu && neu !== old) {
-          this.config.vpcId = '';
-          this.config.vswitchIds = [];
-          this.config.podVswitchIds = [];
+    resourceGroupId: {
+      async handler(neu, old) {
+        if (neu !== old) {
+          this.$emit('update:vpcId', '');
+          this.$emit('update:vswitchIds', []);
+          this.$emit('update:podVswitchIds', []);
 
-          this.getVPCs();
+          await this.getVPCs();
+          const firstVpc = Object.keys(this.allVPCs)[0];
+
+          if (firstVpc) {
+            this.$emit('update:vpcId', firstVpc);
+          }
         }
       },
       immediate: true
     },
-    'config.zoneIds': {
+    zoneIds: {
       handler(neu, old) {
         if (neu !== old) {
           this.zonesChanged();
@@ -278,36 +334,45 @@ export default defineComponent({
       },
       immediate: true
     },
-    'config.vswitchIds': {
+    vswitchIds: {
       handler(neu, old) {
         if (neu !== old) {
           this.zonesChanged();
+
+          this.$emit('update:podVswitchIds', neu.length === 0 ? [] : [neu[0]]);
         }
       },
       immediate: true
     },
-    'config.vpcId': {
-      handler(neu, old) {
-        if ((!!old || (!old && !!this.isNewOrUnprovisioned)) && !!neu && neu !== old) {
-          this.config.vswitchIds = [];
-          this.config.podVswitchIds = [];
-          this.getVswitches();
+    vpcId: {
+      async handler(neu, old) {
+        if (neu !== old) {
+          if (doCidrOverlap(this.serviceCidr, this.allVPCs[neu]?.cidr)) {
+            const overlapWithDefault = doCidrOverlap(DEFAULT_SERVICE_CIDR, this.allVPCs[neu]?.cidr);
+
+            !overlapWithDefault ? this.$emit('update:serviceCidr', DEFAULT_SERVICE_CIDR) : this.$emit('update:serviceCidr', BACKUP_SERVICE_CIDR);
+          }
+          if (doCidrOverlap(this.containerCidr, this.allVPCs[neu]?.cidr)) {
+            this.$emit('update:containerCidr', '');
+          }
+          this.$emit('update:vswitchIds', []);
+          this.$emit('update:podVswitchIds', []);
+          await this.getVswitches();
+          const firstVswitch = Object.keys(this.allVSwitches)[0];
+
+          this.$emit('update:vswitchIds', !firstVswitch ? [] : [firstVswitch]);
         }
       },
       immediate: true
     },
     'networkPlugin'(neu) {
-      if (neu === 'flannel') {
-        this.config.containerCidr = '10.0.0.0/8';
-        delete this.config.podVswitchIds;
-        this.config.addons = [
-          { name: 'flannel' }
-        ];
+      if (neu === FLANNEL) {
+        this.$emit('update:containerCidr', DEFAULT_CONTAINER_CIDR);
+        this.$emit('update:podVswitchIds', []);
+        this.$emit('update:addons', [{ name: FLANNEL_ADDON }]);
       } else {
-        delete this.config.containerCidr;
-        this.config.addons = [
-          { name: 'terway-eniip' }
-        ];
+        this.$emit('update:containerCidr', null);
+        this.$emit('update:addons', [{ name: TERWAY_ADDON }]);
       }
     },
   },
@@ -376,6 +441,7 @@ export default defineComponent({
             label, cidr: vswitch.CidrBlock, zoneId: vswitch.ZoneId
           };
         });
+        this.$emit('update:vswitchIds', [Object.keys(this.allVSwitches)[0]]);
       } catch (err) {
         const parsedError = err.error || '';
 
@@ -392,7 +458,7 @@ export default defineComponent({
 
         this.allAvailabilityZones = zones;
         if (this.isNewOrUnprovisioned && !this.chooseVPC) {
-          this.config.zoneIds = zones.map((z) => z.value);
+          this.$emit('update:zoneIds', zones.map((z) => z.value));
         }
       } catch (err) {
         const parsedError = err.error || '';
@@ -405,12 +471,14 @@ export default defineComponent({
       let zones = [];
 
       if (!this.chooseVPC) {
-        zones = this.config.zoneIds;
-      } else if (this.config.vswitchIds) {
-        this.config.vswitchIds.forEach((vswitchId) => {
+        zones = this.zoneIds;
+      } else if (this.vswitchIds) {
+        this.vswitchIds.forEach((vswitchId) => {
           const vswitch = this.allVSwitches[vswitchId];
 
-          zones.push(vswitch.zoneId);
+          if (vswitch ) {
+            zones.push(vswitch.zoneId);
+          }
         });
       }
       this.$emit('zoneChanged', new Set(zones));
@@ -430,7 +498,7 @@ export default defineComponent({
     >
       <div class="col span-4">
         <LabeledSelect
-          v-model:value="config.resourceGroupId"
+          :value="resourceGroupId"
           data-testid="ack-networking-resourceGroupId"
           :mode="mode"
           :options="resourceGroupOptions"
@@ -439,6 +507,7 @@ export default defineComponent({
           option-label="label"
           :loading="loadingResourceGroups"
           :disabled="!isNewOrUnprovisioned"
+          @update:value="$emit('update:resourceGroupId', $event)"
         />
       </div>
     </div>
@@ -468,7 +537,7 @@ export default defineComponent({
         <div class="row span-12">
           <div class="col span-6">
             <LabeledSelect
-              v-model:value="config.vpcId"
+              :value="vpcId"
               :disabled="!isNewOrUnprovisioned"
               :mode="mode"
               label-key="ack.networking.vpc.label"
@@ -478,11 +547,12 @@ export default defineComponent({
               :multiple="false"
               data-testid="ack-networking-vpcid-dropdown"
               required
+              @update:value="$emit('update:vpcId', $event)"
             />
           </div>
           <div class="col span-6">
             <LabeledSelect
-              v-model:value="config.vswitchIds"
+              :value="vswitchIds"
               :mode="mode"
               :options="vswitchIdOptions"
               :multiple="true"
@@ -491,6 +561,7 @@ export default defineComponent({
               :disabled="!isNewOrUnprovisioned"
               data-testid="ack-networking-vswitchIds-input"
               required
+              @update:value="$emit('update:vswitchIds', $event)"
             />
           </div>
         </div>
@@ -501,7 +572,7 @@ export default defineComponent({
       >
         <div class="col span-4">
           <LabeledSelect
-            v-model:value="config.zoneIds"
+            :value="zoneIds"
             :disabled="!isNewOrUnprovisioned"
             :options="availabilityZoneOptions"
             :loading="loadingAvailabilityZones"
@@ -511,16 +582,18 @@ export default defineComponent({
             :taggable="true"
             required
             :rules="fvGetAndReportPathRules('zoneIds')"
+            @update:value="$emit('update:zoneIds', $event)"
           />
         </div>
       </div>
       <div class="row hierarchy">
         <Checkbox
-          v-model:value="config.snatEntry"
+          :value="snatEntry"
           :disabled="!isNewOrUnprovisioned"
           :mode="mode"
           label-key="ack.networking.vpc.snatEntry.label"
           data-testid="ack-networking-vpc-snatEntry"
+          @update:value="$emit('update:snatEntry', $event)"
         />
       </div>
     </div>
@@ -541,13 +614,14 @@ export default defineComponent({
         class="col span-4"
       >
         <LabeledInput
-          v-model:value="config.containerCidr"
+          :value="containerCidr"
           :mode="mode"
           label-key="ack.networking.containerCidr.label"
           :disabled="!isNewOrUnprovisioned"
           data-testid="ack-networking-containerCidr-input"
           :rules="fvGetAndReportPathRules('containerCidr')"
           required
+          @update:value="$emit('update:containerCidr', $event)"
         />
       </div>
       <div
@@ -556,7 +630,7 @@ export default defineComponent({
       >
         <LabeledSelect
           v-if="chooseVPC"
-          v-model:value="config.podVswitchIds"
+          :value="podVswitchIds"
           :mode="mode"
           :options="podVswitchIdOptions"
           :multiple="true"
@@ -565,28 +639,32 @@ export default defineComponent({
           :disabled="!isNewOrUnprovisioned"
           data-testid="ack-networking-podVswitchIds-input"
           required
+          @update:value="$emit('update:podVswitchIds', $event)"
         />
-        <label
+        <div
           v-else
-          class=""
-        >{{ t("ack.networking.podVswitchIds.auto") }}</label>
+          class="mt-20 align-center"
+        >
+          <label>{{ t("ack.networking.podVswitchIds.auto") }}</label>
+        </div>
       </div>
     </div>
     <div class="row mb-10">
       <div class="col span-4">
         <LabeledSelect
-          v-model:value="config.proxyMode"
+          :value="proxyMode"
           :mode="mode"
           :options="proxyModeOptions"
           label-key="ack.networking.proxyMode.label"
           :disabled="!isNewOrUnprovisioned"
           data-testid="ack-networking-proxyMode-select"
+          @update:value="$emit('update:proxyMode', $event)"
         />
       </div>
       <div class="col span-8">
         <div class="col span-4">
           <LabeledInput
-            v-model:value="config.serviceCidr"
+            :value="serviceCidr"
             :mode="mode"
             :disabled="!isNewOrUnprovisioned"
             label-key="ack.networking.serviceCidr.label"
@@ -594,6 +672,7 @@ export default defineComponent({
             data-testid="ack-networking-serviceCidr-input"
             :rules="fvGetAndReportPathRules('serviceCidr')"
             required
+            @update:value="$emit('update:serviceCidr', $event)"
           />
         </div>
         <p
@@ -604,11 +683,12 @@ export default defineComponent({
     </div>
     <div class="row mb-10">
       <Checkbox
-        v-model:value="config.endpointPublicAccess"
+        :value="endpointPublicAccess"
         :disabled="!isNewOrUnprovisioned"
         :mode="mode"
         label-key="ack.networking.endpointPublicAccess.label"
         data-testid="ack-networking-endpointPublicAccess"
+        @update:value="$emit('update:endpointPublicAccess', $event)"
       />
     </div>
   </div>

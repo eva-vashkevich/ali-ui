@@ -1,7 +1,7 @@
 <script>
 import { ref, watch, computed } from 'vue';
 import debounce from 'lodash/debounce';
-import { _EDIT, _VIEW } from '@shell/config/query-params';
+import { _EDIT, _VIEW, _CREATE } from '@shell/config/query-params';
 import { removeAt } from '@shell/utils/array';
 import { clone } from '@shell/utils/object';
 import DiskType from './DiskType.vue';
@@ -59,6 +59,10 @@ export default {
       return props.mode === _VIEW;
     });
 
+    const isCreate = computed(() => {
+      return props.mode === _CREATE;
+    });
+
     /**
      * Cleanup rows and emit input
      */
@@ -109,6 +113,7 @@ export default {
       lastUpdateWasFromValue,
       queueUpdate,
       isView,
+      isCreate,
       update,
     };
   },
@@ -153,92 +158,61 @@ export default {
         v-for="(row, idx) in rows"
         :key="idx"
         :data-testid="`ack-disk-group-box${ idx }`"
-        :class="{'hide-remove-is-view': isView}"
         role="group"
       >
-        <slot
-          name="columns"
-          :queueUpdate="queueUpdate"
-          :i="idx"
-          :rows="rows"
-          :row="row"
+        <DiskType
+          :key="idx"
+          v-model:value="row.value"
           :mode="mode"
-          :isView="isView"
+          :is-new-or-unprovisioned="isNewOrUnprovisioned"
         >
-          <DiskType
-            :key="idx"
-            v-model:value="row.value"
-            :mode="mode"
-            :is-new-or-unprovisioned="isNewOrUnprovisioned"
-          >
-            <template #remove>
-              <div
-                v-if="showRemove && !isView"
+          <template #remove>
+            <div
+              v-if="showRemove && isCreate"
+            >
+              <button
+                type="button"
+                :disabled="!isNewOrUnprovisioned"
+                class="btn role-link"
+                :data-testid="`ack-disk-group-remove-item-${idx}`"
+                :aria-label="t('generic.ariaLabel.remove', {index: idx+1})"
+                role="button"
+                @click="remove(row, idx)"
               >
-                <slot
-                  name="remove-button"
-                  :remove="() => remove(row, idx)"
-                  :i="idx"
-                  :row="row"
-                >
-                  <button
-                    type="button"
-                    :disabled="!isNewOrUnprovisioned"
-                    class="btn role-link"
-                    :data-testid="`ack-disk-group-remove-item-${idx}`"
-                    :aria-label="t('generic.ariaLabel.remove', {index: idx+1})"
-                    role="button"
-                    @click="remove(row, idx)"
-                  >
-                    {{ t('ack.nodePool.diskGroup.remove') }}
-                  </button>
-                </slot>
-              </div>
-            </template>
-          </DiskType>
-        </slot>
-        <slot
-          name="value-sub-row"
-          :row="row"
-          :mode="mode"
-          :isView="isView"
-        />
+                {{ t('ack.nodePool.diskGroup.remove') }}
+              </button>
+            </div>
+          </template>
+        </DiskType>
       </div>
     </template>
     <div v-else>
-      <slot name="empty">
-        <div
-          v-if="mode==='view'"
-          class="text-muted"
-        >
-          &mdash;
-        </div>
-      </slot>
+      <div
+        v-if="isView"
+        class="text-muted"
+      >
+        &mdash;
+      </div>
     </div>
     <div
-      v-if="!isView"
+      v-if="isCreate"
       class="footer mmt-6"
     >
-      <slot
-        name="add"
-        :add="add"
+      <button
+        type="button"
+        class="btn role-tertiary add"
+        :disabled="loading || disableAdd"
+        :data-testid="`ack-disk-group-add-button`"
+        :aria-label="'ack.nodePool.diskGroup.add'"
+        role="button"
+        @click="add()"
       >
-        <button
-          type="button"
-          class="btn role-tertiary add"
-          :disabled="loading || disableAdd"
-          :data-testid="`ack-disk-group-add-button`"
-          :aria-label="'ack.nodePool.diskGroup.add'"
-          role="button"
-          @click="add()"
-        >
-          <i
-            class="mr-5 icon"
-            :class="loading ? ['icon-lg', 'icon-spinner','icon-spin']: ['icon-plus']"
-          />
-          {{ t('ack.nodePool.diskGroup.add') }}
-        </button>
-      </slot>
+        <i
+          class="mr-5 icon"
+          :class="loading ? ['icon-lg', 'icon-spinner','icon-spin']: ['icon-plus']"
+        />
+        {{ t('ack.nodePool.diskGroup.add') }}
+      </button>
     </div>
   </div>
 </template>

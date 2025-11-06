@@ -6,7 +6,6 @@ import UnitInput from '@shell/components/form/UnitInput.vue';
 import ArrayListOrdered from './ArrayListOrdered.vue';
 import { _CREATE } from '@shell/config/query-params';
 import { getAlibabaInstanceTypes } from '../util/ack';
-import throttle from 'lodash/throttle';
 import SortableTable from '@shell/components/SortableTable/index.vue';
 
 const STATUS_AVAILABLE = 'Available';

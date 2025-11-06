@@ -116,9 +116,6 @@ export default {
     };
   },
 
-  computed: {},
-  created() {
-  },
   methods: {
     /**
      * Remove item and emits removed row and its own index value
@@ -128,7 +125,7 @@ export default {
       removeAt(this.rows, index);
       this.queueUpdate();
     },
-    moveUp(row, index) {
+    moveUp(index) {
       if (index > 0) {
         const element = this.rows[index];
 
@@ -138,7 +135,7 @@ export default {
         this.queueUpdate();
       }
     },
-    moveDown(row, index) {
+    moveDown(index) {
       if (index < this.rows.length - 1) {
         const element = this.rows[index];
 
@@ -169,42 +166,27 @@ export default {
           :class="{'hide-remove-is-view': isView}"
           role="group"
         >
-          <slot
-            name="columns"
-            :queueUpdate="queueUpdate"
-            :i="idx"
-            :rows="rows"
-            :row="row"
-            :mode="mode"
-            :isView="isView"
-          >
-            <div class="value">
-              <slot
-                name="value"
-                :row="row"
-                :mode="mode"
-                :isView="isView"
-                :queue-update="queueUpdate"
+          <div class="value">
+            <Tag
+              :key="idx"
+              class="tag"
+              :class="{disabled: disabled}"
+            >
+              <span class="ml-10">{{ row.value }}</span>
+              <button
+                v-if="!isView"
+                type="button"
+                :disabled="disabled"
+                class="btn role-tertiary"
+                :data-testid="`${componentTestid}-remove-item-${idx}`"
+                :aria-label="t('generic.ariaLabel.remove', {index: idx+1})"
+                role="button"
+                @click="remove(row, idx)"
               >
-                <Tag
-                  :key="idx"
-                  class=""
-                >
-                  <span class="ml-10">{{ row.value }}</span>
-                  <button
-                    v-if="!isView"
-                    type="button"
-                    :disabled="disabled"
-                    class="btn icon-x"
-                    :data-testid="`${componentTestid}-remove-item-${idx}`"
-                    :aria-label="t('generic.ariaLabel.remove', {index: idx+1})"
-                    role="button"
-                    @click="remove(row, idx)"
-                  />
-                </Tag>
-              </slot>
-            </div>
-          </slot>
+                <t k="generic.remove" />
+              </button>
+            </Tag>
+          </div>
           <div class="row bttns ml-10">
             <button
               type="button"
@@ -214,7 +196,7 @@ export default {
               :data-testid="`${componentTestid}-move-up-item-${idx}`"
               :aria-label="t('generic.ariaLabel.moveUp', {index: idx+1})"
               role="button"
-              @click="moveUp(row, idx)"
+              @click="moveUp(idx)"
             >
               <i class="icon icon-chevron-up mr-5 ml-5" />{{ t('generic.moveUp') }}
             </button>
@@ -226,7 +208,7 @@ export default {
               :data-testid="`${componentTestid}-move-down-item-${idx}`"
               :aria-label="t('generic.ariaLabel.moveDown', {index: idx+1})"
               role="button"
-              @click="moveDown(row, idx)"
+              @click="moveDown(idx)"
             >
               <i class="icon icon-chevron-down mr-5 ml-5" />{{ t('generic.moveDown') }}
             </button>
@@ -234,14 +216,12 @@ export default {
         </div>
       </template>
       <div v-else>
-        <slot name="empty">
-          <div
-            v-if="mode==='view'"
-            class="text-muted"
-          >
-            &mdash;
-          </div>
-        </slot>
+        <div
+          v-if="mode==='view'"
+          class="text-muted"
+        >
+          &mdash;
+        </div>
       </div>
     </div>
   </div>
@@ -255,6 +235,7 @@ export default {
     align-items: center;
     width: 100%;
     padding-right: 4px;
+    height: 100%;
 }
 .box {
     display: grid;
@@ -263,14 +244,9 @@ export default {
     margin-bottom: 10px;
     .value {
       flex: 1;
-      INPUT {
-        height: $unlabeled-input-height;
-      }
+      height: 100%;
+      overflow: hidden;
     }
-  }
-
-  .box.hide-remove-is-view {
-    grid-template-columns: auto;
   }
 
   .bttns {

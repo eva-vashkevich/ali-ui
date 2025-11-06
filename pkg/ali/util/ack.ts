@@ -182,9 +182,6 @@ export async function getAlibabaInstanceTypeFamilies(
   alibabaCredentialSecret: string,
   regionId: string
 ): Promise<any> {
-  const extra: any = {
-    destinationResource: "InstanceTypeFamily",
-  };
   return getACKOptions(
     store,
     alibabaCredentialSecret,

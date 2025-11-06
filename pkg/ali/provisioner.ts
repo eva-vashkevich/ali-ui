@@ -57,4 +57,7 @@ export class ACKProvisioner implements IClusterProvisioner {
   get showImport(): boolean {
     return true;
   }
+  get description(): string {
+    return this.context.t('ali.description');
+  }
 }

@@ -1,6 +1,7 @@
 <script>
 import { mapGetters } from 'vuex';
 import { defineComponent } from 'vue';
+import semver from 'semver';
 import Loading from '@shell/components/Loading.vue';
 import CruResource from '@shell/components/CruResource.vue';
 import SelectCredential from '@shell/edit/provisioning.cattle.io.cluster/SelectCredential.vue';
@@ -20,7 +21,7 @@ import NodePool from './NodePool.vue';
 import Networking from './Networking.vue';
 import ClusterMembershipEditor, { canViewClusterMembershipEditor } from '@shell/components/form/Members/ClusterMembershipEditor.vue';
 import cloneDeep from 'lodash/cloneDeep';
-import { NORMAN } from '@shell/config/types';
+import { NORMAN, MANAGEMENT } from '@shell/config/types';
 import { removeObject } from '@shell/utils/array';
 import { randomStr } from '@shell/utils/string';
 import { sortable } from '@shell/utils/version';
@@ -31,10 +32,10 @@ import {
   clusterNameChars,
   clusterNameStart,
   clusterNameLength,
-  //locationRequired
 } from '../util/validation';
-
+import { SETTING } from '@shell/config/settings';
 const DEFAULT_REGION = 'us-east-1';
+const DEFAULT_SERVICE_CIDR = '192.168.0.0/16';
 
 const importedDefaultAckConfig = {
   clusterName:    '',
@@ -49,7 +50,7 @@ export const defaultAckConfig = {
   imported:             false,
   tags:                 {},
   clusterType:          'ManagedKubernetes',
-  serviceCidr:          '192.168.0.0/16',
+  serviceCidr:          DEFAULT_SERVICE_CIDR,
   snatEntry:            true,
   endpointPublicAccess: true,
   proxyMode:            'ipvs',
@@ -144,7 +145,6 @@ export default defineComponent({
       normanCluster:          { name: '', aliConfig: {} },
       nodePools:              [],
       membershipUpdate:       {},
-      originalVersion:        '',
       locationOptions:        [],
       allVersions:            [],
       allImages:              {},
@@ -157,29 +157,20 @@ export default defineComponent({
       configIsValid:          true,
       zones:                  new Set(),
       fvFormRuleSets:         this.isImport ? [
-      {
-        path:  'name',
-        rules: ['nameRequired', 'clusterNameChars', 'clusterNameStart', 'clusterNameLength'],
-      },
-      {
-        path:  'clusterName',
-        rules: ['importedName']
-      },      
-      // { 
-      //   path:  'regionId',
-      //   rules: ['locationRequired']
-      // },
+        {
+          path:  'name',
+          rules: ['nameRequired', 'clusterNameChars', 'clusterNameStart', 'clusterNameLength'],
+        },
+        {
+          path:  'clusterName',
+          rules: ['importedName']
+        },
       ] : [{
         path:  'name',
         rules: ['nameRequired', 'clusterNameChars', 'clusterNameStart', 'clusterNameLength'],
       },
-
-      // { 
-      //   path:  'regionId',
-      //   rules: ['locationRequired']
-      // },
       ],
-      
+
     };
   },
 
@@ -248,14 +239,16 @@ export default defineComponent({
     VIEW() {
       return _VIEW;
     },
+    supportedVersionRange() {
+      return this.$store.getters['management/byId'](MANAGEMENT.SETTING, SETTING.UI_SUPPORTED_K8S_VERSIONS)?.value;
+    },
     fvExtraRules() {
       return {
         nameRequired:        requiredInCluster(this, 'nameNsDescription.name.label', 'normanCluster.name'),
         clusterNameChars:    clusterNameChars(this),
         clusterNameStart:    clusterNameStart(this),
         clusterNameLength:   clusterNameLength(this),
-        importedName:        requiredInCluster(this, 'ali.import.label', 'config.clusterName'),
-        //locationRequired:    locationRequired(this),
+        importedName:        requiredInCluster(this, 'ali.import.label', 'config.clusterName')
       };
     },
 
@@ -366,6 +359,11 @@ export default defineComponent({
     processVersions(unprocessedVersions) {
       const newAllImages = {};
       const validVersions = (unprocessedVersions || []).reduce((versions, version) => {
+        const coerced = semver.coerce(version.value);
+
+        if (this.supportedVersionRange && !semver.satisfies(coerced, this.supportedVersionRange)) {
+          return versions;
+        }
         if ((this.isCreate && version.creatable) || !this.isCreate) {
           versions.push({ value: version.value, label: version.value });
           newAllImages[version.value] = version.images;
@@ -472,7 +470,7 @@ export default defineComponent({
     :mode="mode"
     :can-yaml="false"
     :done-route="doneRoute"
-    :validation-passed="fvFormIsValid && configIsValid && !!this.config.regionId"
+    :validation-passed="fvFormIsValid && configIsValid && !!config.regionId"
     :errors="fvUnreportedValidationErrors"
     @error="e=>errors=e"
     @finish="save"
@@ -488,7 +486,7 @@ export default defineComponent({
           label-key="generic.name"
           required
           :rules="fvGetAndReportPathRules('name')"
-          :disabled="!isNewOrUnprovisioned"
+          :disabled="!isCreate"
           @update:value="setClusterName"
         />
       </div>
@@ -577,13 +575,23 @@ export default defineComponent({
           title-key="ack.accordions.networking"
         >
           <Networking
-            v-model:config="config"
+            v-model:resource-group-id="config.resourceGroupId"
+            v-model:vpc-id="config.vpcId"
+            v-model:vswitch-ids="config.vswitchIds"
+            v-model:zone-ids="config.zoneIds"
+            v-model:snat-entry="config.snatEntry"
+            v-model:proxy-mode="config.proxyMode"
+            v-model:service-cidr="config.serviceCidr"
+            v-model:endpoint-public-access="config.endpointPublicAccess"
+            v-model:container-cidr="config.containerCidr"
+            v-model:pod-vswitch-ids="config.podVswitchIds"
+            v-model:addons="config.addons"
             v-model:config-unreported-errors="configUnreportedErrors"
             v-model:config-is-valid="configIsValid"
             v-model:enable-network-policy="normanCluster.enableNetworkPolicy"
+            :config="config"
             :value="value"
             :mode="mode"
-            :original-version="originalVersion"
             :is-new-or-unprovisioned="isNewOrUnprovisioned"
             @error="e=>errors.push(e)"
             @zone-changed="(val)=>zones=val"
@@ -602,8 +610,8 @@ export default defineComponent({
           <Tab
             v-for="(pool) in nodePools"
             :key="pool._id"
-            :label="pool.name || t('ack.nodePools.unnamed')"
-            :name="`${pool.name}-${pool._id}`"
+            :label="pool.name"
+            :name="`${pool.name || t('ack.nodePool.unnamed')}`"
           >
             <NodePool
               :mode="mode"
@@ -674,7 +682,7 @@ export default defineComponent({
       v-if="!hasCredential"
       #form-footer
     >
-      <div></div>
+      <div />
     </template>
   </CruResource>
 </template>
