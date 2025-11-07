@@ -11,7 +11,7 @@ import { doCidrOverlap, isValidCIDR } from '../util/validation';
 import { getAlibabaResourceGroups, getAlibabaVpcs, getAlibabaZones, getAlibabaVSwitches } from '../util/ack';
 
 const DEFAULT_CONTAINER_CIDR = '10.0.0.0/8';
-const BACKUP_SERVICE_CIDR = '172.16.0.0/12';
+const BACKUP_SERVICE_CIDR = '172.16.0.0/16';
 const DEFAULT_SERVICE_CIDR = '192.168.0.0/16';
 
 const FLANNEL = 'flannel';
@@ -280,38 +280,34 @@ export default defineComponent({
     },
 
     'config.regionId': {
-      handler(neu, old) {
-        if (neu && neu !== old) {
-          this.$emit('update:resourceGroupId', '');
-          this.$emit('update:vpcId', '');
-          this.$emit('update:vswitchIds', []);
-          this.$emit('update:podVswitchIds', []);
-          this.$emit('update:zoneIds', []);
+      handler() {
+        this.$emit('update:resourceGroupId', '');
+        this.$emit('update:vpcId', '');
+        this.$emit('update:vswitchIds', []);
+        this.$emit('update:podVswitchIds', []);
+        this.$emit('update:zoneIds', []);
 
-          this.getResourceGroups();
-          this.getZones();
-        }
+        this.getResourceGroups();
+        this.getZones();
       },
       immediate: true
     },
     'config.alibabaCredentialSecret': {
-      handler(neu, old) {
-        if (neu && neu !== old) {
-          this.$emit('update:resourceGroupId', '');
-          this.$emit('update:vpcId', '');
-          this.$emit('update:vswitchIds', []);
-          this.$emit('update:podVswitchIds', []);
-          this.$emit('update:zoneIds', []);
+      handler() {
+        this.$emit('update:resourceGroupId', '');
+        this.$emit('update:vpcId', '');
+        this.$emit('update:vswitchIds', []);
+        this.$emit('update:podVswitchIds', []);
+        this.$emit('update:zoneIds', []);
 
-          this.getResourceGroups();
-          this.getZones();
-        }
+        this.getResourceGroups();
+        this.getZones();
       },
       immediate: true
     },
     resourceGroupId: {
-      async handler(neu, old) {
-        if (neu !== old) {
+      async handler() {
+        if (this.chooseVPC) {
           this.$emit('update:vpcId', '');
           this.$emit('update:vswitchIds', []);
           this.$emit('update:podVswitchIds', []);
@@ -327,16 +323,14 @@ export default defineComponent({
       immediate: true
     },
     zoneIds: {
-      handler(neu, old) {
-        if (neu !== old) {
-          this.zonesChanged();
-        }
+      handler() {
+        this.zonesChanged();
       },
       immediate: true
     },
     vswitchIds: {
-      handler(neu, old) {
-        if (neu !== old) {
+      handler(neu) {
+        if (this.chooseVPC) {
           this.zonesChanged();
 
           this.$emit('update:podVswitchIds', neu.length === 0 ? [] : [neu[0]]);
@@ -345,18 +339,18 @@ export default defineComponent({
       immediate: true
     },
     vpcId: {
-      async handler(neu, old) {
-        if (neu !== old) {
-          if (doCidrOverlap(this.serviceCidr, this.allVPCs[neu]?.cidr)) {
-            const overlapWithDefault = doCidrOverlap(DEFAULT_SERVICE_CIDR, this.allVPCs[neu]?.cidr);
+      async handler(neu) {
+        if (doCidrOverlap(this.serviceCidr, this.allVPCs[neu]?.cidr)) {
+          const overlapWithDefault = doCidrOverlap(DEFAULT_SERVICE_CIDR, this.allVPCs[neu]?.cidr);
 
-            !overlapWithDefault ? this.$emit('update:serviceCidr', DEFAULT_SERVICE_CIDR) : this.$emit('update:serviceCidr', BACKUP_SERVICE_CIDR);
-          }
-          if (doCidrOverlap(this.containerCidr, this.allVPCs[neu]?.cidr)) {
-            this.$emit('update:containerCidr', '');
-          }
-          this.$emit('update:vswitchIds', []);
-          this.$emit('update:podVswitchIds', []);
+          !overlapWithDefault ? this.$emit('update:serviceCidr', DEFAULT_SERVICE_CIDR) : this.$emit('update:serviceCidr', BACKUP_SERVICE_CIDR);
+        }
+        if (doCidrOverlap(this.containerCidr, this.allVPCs[neu]?.cidr)) {
+          this.$emit('update:containerCidr', '');
+        }
+        this.$emit('update:vswitchIds', []);
+        this.$emit('update:podVswitchIds', []);
+        if (this.chooseVPC) {
           await this.getVswitches();
           const firstVswitch = Object.keys(this.allVSwitches)[0];
 
@@ -441,7 +435,6 @@ export default defineComponent({
             label, cidr: vswitch.CidrBlock, zoneId: vswitch.ZoneId
           };
         });
-        this.$emit('update:vswitchIds', [Object.keys(this.allVSwitches)[0]]);
       } catch (err) {
         const parsedError = err.error || '';
 

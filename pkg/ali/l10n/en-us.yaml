@@ -34,6 +34,7 @@ ack:
       list:
         title: Instance Type Order
         subtitle: Nodes are created based on the order of the instance types. If one instance type is unavailable, the next instance type is used. The actual instance types used to create nodes are subject to inventory availability.
+        warning: This instance type might be unavailable in selected zones.
       table:
         title: Instance Types
         subtitle: Select one or more instance types. Nodes are created based on the order of the instance types in the Instance Order list below.

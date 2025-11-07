@@ -172,19 +172,28 @@ export default {
               class="tag"
               :class="{disabled: disabled}"
             >
-              <span class="ml-10">{{ row.value }}</span>
-              <button
-                v-if="!isView"
-                type="button"
-                :disabled="disabled"
-                class="btn role-tertiary"
-                :data-testid="`${componentTestid}-remove-item-${idx}`"
-                :aria-label="t('generic.ariaLabel.remove', {index: idx+1})"
-                role="button"
-                @click="remove(row, idx)"
-              >
-                <t k="generic.remove" />
-              </button>
+              <span class="ml-10">{{ row.value.label }}
+
+              </span>
+              <div class="tag-actions">
+                <i
+                  v-if="!!row.value.warning"
+                  v-clean-tooltip="t('ack.nodePool.instanceTypes.list.warning')"
+                  class="icon icon-warning"
+                />
+                <button
+                  v-if="!isView"
+                  type="button"
+                  :disabled="disabled"
+                  class="btn role-tertiary"
+                  :data-testid="`${componentTestid}-remove-item-${idx}`"
+                  :aria-label="t('generic.ariaLabel.remove', {index: idx+1})"
+                  role="button"
+                  @click="remove(row, idx)"
+                >
+                  <t k="generic.remove" />
+                </button>
+              </div>
             </Tag>
           </div>
           <div class="row bttns ml-10">
@@ -236,6 +245,11 @@ export default {
     width: 100%;
     padding-right: 4px;
     height: 100%;
+}
+.tag-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 .box {
     display: grid;

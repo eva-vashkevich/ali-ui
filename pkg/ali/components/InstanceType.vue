@@ -170,7 +170,7 @@ export default defineComponent({
           const fromDict = this.typesDictionary[instanceType];
 
           if (!fromDict) {
-            return instanceType;
+            return { label: instanceType, warning: true };
           }
 
           const labelParts = [instanceType];
@@ -182,8 +182,10 @@ export default defineComponent({
             labelParts.push(this.t('ack.nodePool.instanceTypes.table.labelParts.memory', { val: fromDict.memory }) );
           }
           labelParts.push(fromDict.stock);
+          labelParts.push(fromDict.zones.join(', '));
+          const label = labelParts.join(' - ');
 
-          return labelParts.join('-');
+          return { label, warning: false };
         });
       },
       set(neu) {
