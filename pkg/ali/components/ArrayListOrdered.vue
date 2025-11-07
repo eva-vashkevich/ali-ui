@@ -179,7 +179,7 @@ export default {
                 <i
                   v-if="!!row.value.warning"
                   v-clean-tooltip="t('ack.nodePool.instanceTypes.list.warning')"
-                  class="icon icon-warning"
+                  class="icon icon-warning error"
                 />
                 <button
                   v-if="!isView"
@@ -251,6 +251,9 @@ export default {
   align-items: center;
   gap: 5px;
 }
+.error {
+    color: var(--error);
+  }
 .box {
     display: grid;
     grid-template-columns: auto $array-list-remove-margin;
