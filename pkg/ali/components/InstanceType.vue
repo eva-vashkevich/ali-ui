@@ -166,7 +166,7 @@ export default defineComponent({
     },
     instanceTypesList: {
       get() {
-        return this.instanceTypes.map((instanceType) => {
+        return (this.instanceTypes || []).map((instanceType) => {
           const fromDict = this.typesDictionary[instanceType];
 
           if (!fromDict) {
@@ -190,7 +190,7 @@ export default defineComponent({
       },
       set(neu) {
         this.instanceTypes = neu.map((instanceType) => {
-          return instanceType.split('-')[0];
+          return instanceType.label.split(' - ')[0].trim();
         });
       }
     },
@@ -211,7 +211,7 @@ export default defineComponent({
       const availableZones = this.localInstanceTypes?.AvailableZones?.AvailableZone || [];
 
       availableZones.forEach((zone) => {
-        const zoneAllowed = (zone.ZoneId && this.zones.has(zone.ZoneId)) || !this.isNewOrUnprovisioned;
+        const zoneAllowed = this.zones.size === 0 || (zone.ZoneId && this.zones.has(zone.ZoneId)) || !this.isNewOrUnprovisioned;
 
         if (zoneAllowed && zone.Status === STATUS_AVAILABLE) {
           const availableResources = zone.AvailableResources?.AvailableResource;
@@ -352,7 +352,7 @@ export default defineComponent({
   </p>
   <div class="row">
     <ArrayListOrdered
-      :value="instanceTypesList"
+      v-model:value="instanceTypesList"
       :mode="mode"
       :disabled="!isNewOrUnprovisioned"
       :types-dictionary="typesDictionary"

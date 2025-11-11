@@ -137,7 +137,7 @@ export default defineComponent({
       allAvailabilityZones:     [],
       allVPCs:                  {},
       allVSwitches:             {},
-      chooseVPC:                false,
+      chooseVPC:                !!this.vpcId,
       networkPlugin,
       fvFormRuleSets:             [
         {
@@ -163,9 +163,7 @@ export default defineComponent({
     this.getResourceGroups();
     this.getZones();
     this.getVPCs();
-    if ( this.isNewOrUnprovisioned) {
-      this.getVswitches();
-    }
+    this.getVswitches();
   },
 
   computed: {
@@ -240,7 +238,7 @@ export default defineComponent({
       const unformatted = this.vswitchIds || [];
 
       return unformatted.map((vswitchId) => {
-        return { value: vswitchId, label: this.allVSwitches[vswitchId]?.label || '' };
+        return { value: vswitchId, label: this.allVSwitches[vswitchId]?.label || vswitchId };
       });
     },
     vswitchIdOptions() {
@@ -281,12 +279,13 @@ export default defineComponent({
 
     'config.regionId': {
       handler() {
-        this.$emit('update:resourceGroupId', '');
-        this.$emit('update:vpcId', '');
-        this.$emit('update:vswitchIds', []);
-        this.$emit('update:podVswitchIds', []);
-        this.$emit('update:zoneIds', []);
-
+        if (this.isNewOrUnprovisioned) {
+          this.$emit('update:resourceGroupId', '');
+          this.$emit('update:vpcId', '');
+          this.$emit('update:vswitchIds', []);
+          this.$emit('update:podVswitchIds', []);
+          this.$emit('update:zoneIds', []);
+        }
         this.getResourceGroups();
         this.getZones();
       },
@@ -294,12 +293,13 @@ export default defineComponent({
     },
     'config.alibabaCredentialSecret': {
       handler() {
-        this.$emit('update:resourceGroupId', '');
-        this.$emit('update:vpcId', '');
-        this.$emit('update:vswitchIds', []);
-        this.$emit('update:podVswitchIds', []);
-        this.$emit('update:zoneIds', []);
-
+        if (this.isNewOrUnprovisioned) {
+          this.$emit('update:resourceGroupId', '');
+          this.$emit('update:vpcId', '');
+          this.$emit('update:vswitchIds', []);
+          this.$emit('update:podVswitchIds', []);
+          this.$emit('update:zoneIds', []);
+        }
         this.getResourceGroups();
         this.getZones();
       },
@@ -308,15 +308,17 @@ export default defineComponent({
     resourceGroupId: {
       async handler() {
         if (this.chooseVPC) {
-          this.$emit('update:vpcId', '');
-          this.$emit('update:vswitchIds', []);
-          this.$emit('update:podVswitchIds', []);
-
           await this.getVPCs();
-          const firstVpc = Object.keys(this.allVPCs)[0];
+          if (this.isNewOrUnprovisioned) {
+            this.$emit('update:vpcId', '');
+            this.$emit('update:vswitchIds', []);
+            this.$emit('update:podVswitchIds', []);
 
-          if (firstVpc) {
-            this.$emit('update:vpcId', firstVpc);
+            const firstVpc = Object.keys(this.allVPCs)[0];
+
+            if (firstVpc) {
+              this.$emit('update:vpcId', firstVpc);
+            }
           }
         }
       },
@@ -332,29 +334,32 @@ export default defineComponent({
       handler(neu) {
         if (this.chooseVPC) {
           this.zonesChanged();
-
-          this.$emit('update:podVswitchIds', neu.length === 0 ? [] : [neu[0]]);
+          if (this.isNewOrUnprovisioned) {
+            this.$emit('update:podVswitchIds', neu.length === 0 ? [] : [neu[0]]);
+          }
         }
       },
       immediate: true
     },
     vpcId: {
       async handler(neu) {
-        if (doCidrOverlap(this.serviceCidr, this.allVPCs[neu]?.cidr)) {
-          const overlapWithDefault = doCidrOverlap(DEFAULT_SERVICE_CIDR, this.allVPCs[neu]?.cidr);
+        if (this.isNewOrUnprovisioned) {
+          if (doCidrOverlap(this.serviceCidr, this.allVPCs[neu]?.cidr)) {
+            const overlapWithDefault = doCidrOverlap(DEFAULT_SERVICE_CIDR, this.allVPCs[neu]?.cidr);
 
-          !overlapWithDefault ? this.$emit('update:serviceCidr', DEFAULT_SERVICE_CIDR) : this.$emit('update:serviceCidr', BACKUP_SERVICE_CIDR);
-        }
-        if (doCidrOverlap(this.containerCidr, this.allVPCs[neu]?.cidr)) {
-          this.$emit('update:containerCidr', '');
-        }
-        this.$emit('update:vswitchIds', []);
-        this.$emit('update:podVswitchIds', []);
-        if (this.chooseVPC) {
-          await this.getVswitches();
-          const firstVswitch = Object.keys(this.allVSwitches)[0];
+            !overlapWithDefault ? this.$emit('update:serviceCidr', DEFAULT_SERVICE_CIDR) : this.$emit('update:serviceCidr', BACKUP_SERVICE_CIDR);
+          }
+          if (doCidrOverlap(this.containerCidr, this.allVPCs[neu]?.cidr)) {
+            this.$emit('update:containerCidr', '');
+          }
+          this.$emit('update:vswitchIds', []);
+          this.$emit('update:podVswitchIds', []);
+          if (this.chooseVPC) {
+            await this.getVswitches();
+            const firstVswitch = Object.keys(this.allVSwitches)[0];
 
-          this.$emit('update:vswitchIds', !firstVswitch ? [] : [firstVswitch]);
+            this.$emit('update:vswitchIds', !firstVswitch ? [] : [firstVswitch]);
+          }
         }
       },
       immediate: true
@@ -435,6 +440,7 @@ export default defineComponent({
             label, cidr: vswitch.CidrBlock, zoneId: vswitch.ZoneId
           };
         });
+        this.zonesChanged();
       } catch (err) {
         const parsedError = err.error || '';
 
@@ -465,7 +471,7 @@ export default defineComponent({
 
       if (!this.chooseVPC) {
         zones = this.zoneIds;
-      } else if (this.vswitchIds) {
+      } else if (this.vswitchIds && this.allVSwitches && Object.keys(this.allVSwitches).length > 0) {
         this.vswitchIds.forEach((vswitchId) => {
           const vswitch = this.allVSwitches[vswitchId];
 
@@ -507,13 +513,13 @@ export default defineComponent({
     <div class="mb-10">
       <div class="row mb-10 mt-20">
         <div
-          v-if="isNewOrUnprovisioned"
           class="col span-4"
         >
           <p class="mb-10">
             {{ t('ack.networking.vpc.title') }}
           </p>
           <RadioGroup
+            v-if="isNewOrUnprovisioned"
             v-model:value="chooseVPC"
             name="subnet-mode"
             :mode="mode"
@@ -524,7 +530,7 @@ export default defineComponent({
         </div>
       </div>
       <div
-        v-if="chooseVPC || !isNewOrUnprovisioned"
+        v-if="chooseVPC"
         class="row mb-10 hierarchy"
       >
         <div class="row span-12">
