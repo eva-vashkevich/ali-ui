@@ -555,7 +555,7 @@ export default defineComponent({
       </div>
     </div>
     <div class="row mb-20">
-      <div :class="hasCredential ? 'col span-3' : 'col span-12'">
+      <div :class="hasCredential ? (!isImport? ' col span-3' : 'col span-4') : 'col span-12'">
         <SelectCredential
           v-model:value="config.alibabaCredentialSecret"
           data-testid="cruack-select-credential"
@@ -568,7 +568,8 @@ export default defineComponent({
       </div>
       <div
         v-if="hasCredential"
-        class="col span-3"
+        class="col"
+        :class="!isImport? 'span-3' : 'span-4'"
       >
         <LabeledSelect
           v-model:value="config.regionId"
@@ -584,7 +585,8 @@ export default defineComponent({
       </div>
       <div
         v-if="hasCredential && !isImport"
-        class="col span-3"
+        class="col"
+        :class="!isImport? 'span-3' : 'span-4'"
       >
         <LabeledSelect
           v-model:value="config.clusterSpec"
@@ -598,7 +600,8 @@ export default defineComponent({
       </div>
       <div
         v-if="hasCredential && !isImport"
-        class="col span-3"
+        class="col"
+        :class="!isImport? 'span-3' : 'span-4'"
       >
         <LabeledSelect
           v-model:value="config.kubernetesVersion"
