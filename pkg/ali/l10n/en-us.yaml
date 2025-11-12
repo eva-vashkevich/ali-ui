@@ -108,7 +108,7 @@ ack:
       placeholder: 192.168.0.0/16
       warning: 'Valid values: 10.0-255.0.0/16-24, 172.16-31.0.0/16-24, and 192.168.0.0/16-24'
     podVswitchIds:
-      label: Pod vSwitch
+      label: Pod vSwitches
       auto: Pod vSwitches are automatically created from the VPC.
     endpointPublicAccess:
       label: Expose API server with EIP
@@ -120,7 +120,7 @@ ack:
       availabilityZones:
         label: Zone
       vswitchIds:
-        label: vSwitch 
+        label: vSwitches 
       snatEntry:
         label: Configure SNAT for VPC
   errors:
