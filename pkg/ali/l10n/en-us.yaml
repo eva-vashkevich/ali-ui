@@ -19,8 +19,8 @@ ack:
   clusterSpec:
     label: Cluster Specification
     options:
-      basic: Basic Edition
-      pro: Pro Edition
+      basic: Basic Edition - more suitable for test environments and has limited resource quotas.
+      pro: Pro Edition - more suitable for production environments and provides a service level agreement (SLA).
   accordions:
     cluster: Cluster
     basics: Basics

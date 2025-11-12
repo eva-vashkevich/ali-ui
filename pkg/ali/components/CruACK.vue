@@ -35,6 +35,7 @@ import {
 } from '../util/validation';
 import { SETTING } from '@shell/config/settings';
 import { syncUpstreamConfig } from '@shell/utils/kontainer';
+import { RadioGroup } from '@components/Form/Radio';
 
 const DEFAULT_REGION = 'us-east-1';
 const DEFAULT_SERVICE_CIDR = '192.168.0.0/16';
@@ -128,7 +129,8 @@ export default defineComponent({
     NodePool,
     Tabbed,
     Tab,
-    AgentConfiguration
+    AgentConfiguration,
+    RadioGroup
   },
 
   mixins: [CreateEditView, FormValidation],
@@ -555,7 +557,7 @@ export default defineComponent({
       </div>
     </div>
     <div class="row mb-20">
-      <div :class="hasCredential ? (!isImport? ' col span-3' : 'col span-4') : 'col span-12'">
+      <div :class="hasCredential ? 'col span-4' : 'col span-12'">
         <SelectCredential
           v-model:value="config.alibabaCredentialSecret"
           data-testid="cruack-select-credential"
@@ -568,8 +570,7 @@ export default defineComponent({
       </div>
       <div
         v-if="hasCredential"
-        class="col"
-        :class="!isImport? 'span-3' : 'span-4'"
+        class="col span-4"
       >
         <LabeledSelect
           v-model:value="config.regionId"
@@ -583,25 +584,10 @@ export default defineComponent({
           :disabled="!isNewOrUnprovisioned"
         />
       </div>
+
       <div
         v-if="hasCredential && !isImport"
-        class="col"
-        :class="!isImport? 'span-3' : 'span-4'"
-      >
-        <LabeledSelect
-          v-model:value="config.clusterSpec"
-          data-testid="cruack-clusterSpec"
-          :mode="mode"
-          :options="clusterSpecOptions"
-          label-key="ack.clusterSpec.label"
-          required
-          :disabled="!isNewOrUnprovisioned"
-        />
-      </div>
-      <div
-        v-if="hasCredential && !isImport"
-        class="col"
-        :class="!isImport? 'span-3' : 'span-4'"
+        class="col span-4"
       >
         <LabeledSelect
           v-model:value="config.kubernetesVersion"
@@ -614,6 +600,23 @@ export default defineComponent({
           :loading="loadingVersions"
           required
           :disabled="isView"
+        />
+      </div>
+    </div>
+
+    <div class="row mb-20">
+      <div
+        v-if="hasCredential && !isImport"
+        class="col span-4"
+      >
+        <RadioGroup
+          v-model:value="config.clusterSpec"
+          data-testid="cruack-clusterSpec"
+          :mode="mode"
+          :options="clusterSpecOptions"
+          label-key="ack.clusterSpec.label"
+          required
+          :disabled="!isNewOrUnprovisioned"
         />
       </div>
     </div>
