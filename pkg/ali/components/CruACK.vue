@@ -38,6 +38,8 @@ import { syncUpstreamConfig } from '@shell/utils/kontainer';
 
 const DEFAULT_REGION = 'us-east-1';
 const DEFAULT_SERVICE_CIDR = '192.168.0.0/16';
+const BASIC_CLUSTER_SPEC = 'ack.standard';
+const PRO_CLUSTER_SPEC = 'ack.pro.small';
 
 const importedDefaultAckConfig = {
   clusterName:    '',
@@ -52,6 +54,7 @@ export const defaultAckConfig = {
   imported:             false,
   tags:                 {},
   clusterType:          'ManagedKubernetes',
+  clusterSpec:          BASIC_CLUSTER_SPEC,
   serviceCidr:          DEFAULT_SERVICE_CIDR,
   snatEntry:            true,
   endpointPublicAccess: true,
@@ -251,6 +254,18 @@ export default defineComponent({
     isView() {
       return this.mode === _VIEW;
     },
+    clusterSpecOptions() {
+      return [
+        {
+          value:    BASIC_CLUSTER_SPEC,
+          label:    this.t('ack.clusterSpec.options.basic'),
+        },
+        {
+          value:    PRO_CLUSTER_SPEC,
+          label:    this.t('ack.clusterSpec.options.pro'),
+        },
+      ];
+    },
 
     supportedVersionRange() {
       return this.$store.getters['management/byId'](MANAGEMENT.SETTING, SETTING.UI_SUPPORTED_K8S_VERSIONS)?.value;
@@ -442,9 +457,9 @@ export default defineComponent({
     },
     removePool(i) {
       const pool = this.nodePools[i];
-      const lastAndUnprovisioned = this.nodePools.length === 1 && !this.isNewOrUnprovisioned;
+      const lastAndProvisioned = this.nodePools.length === 1 && !this.isNewOrUnprovisioned;
 
-      if (!lastAndUnprovisioned) {
+      if (!lastAndProvisioned) {
         removeObject(this.nodePools, pool);
       }
     },
@@ -540,7 +555,7 @@ export default defineComponent({
       </div>
     </div>
     <div class="row mb-20">
-      <div :class="hasCredential ? 'col span-4' : 'col span-12'">
+      <div :class="hasCredential ? 'col span-3' : 'col span-12'">
         <SelectCredential
           v-model:value="config.alibabaCredentialSecret"
           data-testid="cruack-select-credential"
@@ -553,7 +568,7 @@ export default defineComponent({
       </div>
       <div
         v-if="hasCredential"
-        class="col span-4"
+        class="col span-3"
       >
         <LabeledSelect
           v-model:value="config.regionId"
@@ -569,7 +584,21 @@ export default defineComponent({
       </div>
       <div
         v-if="hasCredential && !isImport"
-        class="col span-4"
+        class="col span-3"
+      >
+        <LabeledSelect
+          v-model:value="config.clusterSpec"
+          data-testid="cruack-clusterSpec"
+          :mode="mode"
+          :options="clusterSpecOptions"
+          label-key="ack.clusterSpec.label"
+          required
+          :disabled="!isNewOrUnprovisioned"
+        />
+      </div>
+      <div
+        v-if="hasCredential && !isImport"
+        class="col span-3"
       >
         <LabeledSelect
           v-model:value="config.kubernetesVersion"

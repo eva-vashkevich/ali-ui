@@ -16,6 +16,11 @@ cluster:
 ack:
   location:
     label: Location
+  clusterSpec:
+    label: Cluster Specification
+    options:
+      basic: Basic Edition
+      pro: Pro Edition
   accordions:
     cluster: Cluster
     basics: Basics
