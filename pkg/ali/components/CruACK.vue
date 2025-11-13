@@ -697,6 +697,7 @@ export default defineComponent({
               :loading-images="loadingImages"
               :loading-instance-types="loadingInstanceTypes"
               :zones="zones"
+              @error="e=>errors.push(e)"
             />
           </Tab>
         </Tabbed>
