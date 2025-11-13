@@ -658,6 +658,7 @@ export default defineComponent({
             v-model:service-cidr="config.serviceCidr"
             v-model:endpoint-public-access="config.endpointPublicAccess"
             v-model:container-cidr="config.containerCidr"
+            v-model:node-cidr-mask="config.nodeCidrMask"
             v-model:pod-vswitch-ids="config.podVswitchIds"
             v-model:addons="config.addons"
             v-model:config-unreported-errors="configUnreportedErrors"
