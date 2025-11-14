@@ -721,7 +721,7 @@ export default defineComponent({
         </Banner>
         <ClusterMembershipEditor
           v-if="canManageMembers"
-          :mode="isView || isUnprovisioned ? _VIEW : mode"
+          :mode="isView || isInactive ? _VIEW : mode"
           :parent-id="normanCluster.id ? normanCluster.id : null"
           @membership-update="onMembershipUpdate"
         />
@@ -732,7 +732,7 @@ export default defineComponent({
       >
         <Labels
           v-model:value="normanCluster"
-          :mode="isView || isUnprovisioned ? _VIEW : mode"
+          :mode="isView || isInactive ? _VIEW : mode"
         />
       </Accordion>
       <Accordion
@@ -747,7 +747,7 @@ export default defineComponent({
           v-model:value="normanCluster.clusterAgentDeploymentCustomization"
           data-testid="rke2-cluster-agent-config"
           type="cluster"
-          :mode="isView || isUnprovisioned ? _VIEW : mode"
+          :mode="isView || isInactive ? _VIEW : mode"
           :scheduling-customization-feature-enabled="false"
           class="mb-20"
         />
@@ -757,7 +757,7 @@ export default defineComponent({
           v-model:value="normanCluster.fleetAgentDeploymentCustomization"
           data-testid="rke2-fleet-agent-config"
           type="fleet"
-          :mode="isView || isUnprovisioned ? _VIEW : mode"
+          :mode="isView || isInactive ? _VIEW : mode"
         />
       </Accordion>
     </div>
