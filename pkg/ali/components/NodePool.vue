@@ -75,9 +75,7 @@ export default defineComponent({
     isView() {
       return this.mode === _VIEW;
     },
-    isEditingImported() {
-      return this.config.imported && !this.pool._isNewOrUnprovisioned;
-    },
+
     showInstanceTypes() {
       return this.pool.instanceTypes || this.pool._isNewOrUnprovisioned;
     },
@@ -224,7 +222,7 @@ export default defineComponent({
       >
         <LabeledInput
           v-model:value.number="pool.desiredSize"
-          :disabled="isView || isEditingImported"
+          :disabled="isView"
           type="number"
           :mode="mode"
           label-key="ack.nodePool.desiredSize.label"
