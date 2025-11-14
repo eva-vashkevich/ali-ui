@@ -103,6 +103,9 @@ export default defineComponent({
         this.pool.imageId = this.allImages[neu];
         this.pool.imageType = neu;
       }
+    },
+    showDesiredSize() {
+      return this.pool._isNewOrUnprovisioned || !!this.pool.desiredSize;
     }
   },
   watch: {
@@ -135,8 +138,9 @@ export default defineComponent({
       try {
         const types = {};
         let maxCount = 0;
+        const instanceTypesLength = this.pool?.instanceTypes?.length || 0;
 
-        for (let i = 0; i < this.pool.instanceTypes.length; i++) {
+        for (let i = 0; i < instanceTypesLength; i++) {
           const instanceType = this.pool.instanceTypes[i];
           const res = await getDataDisksForInstanceTypes(this.$store, alibabaCredentialSecret, regionId, instanceType );
           const availableZones = res?.AvailableZones?.AvailableZone || [];
@@ -214,7 +218,10 @@ export default defineComponent({
           :disabled="!pool._isNewOrUnprovisioned"
         />
       </div>
-      <div class="col span-3">
+      <div
+        v-if="showDesiredSize"
+        class="col span-3"
+      >
         <LabeledInput
           v-model:value.number="pool.desiredSize"
           :disabled="isView || isEditingImported"
@@ -226,6 +233,31 @@ export default defineComponent({
           data-testid="ack-pool-count-input"
           required
         />
+      </div>
+      <div
+        v-else
+        class="row span-12"
+      >
+        <div class="col span-2">
+          <LabeledInput
+            v-model:value.number="pool.minInstances"
+            :disabled="true"
+            type="number"
+            :mode="mode"
+            label-key="ack.nodePool.minInstances.label"
+            data-testid="ack-pool-min-instances-input"
+          />
+        </div>
+        <div class="col span-2">
+          <LabeledInput
+            v-model:value.number="pool.maxInstances"
+            :disabled="true"
+            type="number"
+            :mode="mode"
+            label-key="ack.nodePool.maxInstances.label"
+            data-testid="ack-pool-max-instances-input"
+          />
+        </div>
       </div>
     </div>
     <div class="row mb-20">
