@@ -36,6 +36,7 @@ import {
 import { SETTING } from '@shell/config/settings';
 import { syncUpstreamConfig } from '@shell/utils/kontainer';
 import { RadioGroup } from '@components/Form/Radio';
+import { STATES_ENUM } from '@shell/plugins/dashboard-store/resource-class';
 
 const DEFAULT_REGION = 'us-east-1';
 const DEFAULT_SERVICE_CIDR = '192.168.0.0/16';
@@ -108,7 +109,7 @@ export const DEFAULT_NODE_GROUP_CONFIG = {
   runtimeVersion: '1.6.38',
   vswitchIds:     [],
 
-  _isNewOrUnprovisioned: true,
+  _isNew: true,
 };
 
 export default defineComponent({
@@ -195,7 +196,7 @@ export default defineComponent({
       const liveNormanCluster = await this.value.findNormanCluster();
 
       this.normanCluster = await store.dispatch(`rancher/clone`, { resource: liveNormanCluster });
-      if (!this.isNewOrUnprovisioned) {
+      if (!(this.isNew || this.isInactive) ) {
         syncUpstreamConfig('ali', this.normanCluster);
       }
 
@@ -220,7 +221,7 @@ export default defineComponent({
       } else if (this.normanCluster.aliConfig.nodePools && this.normanCluster.aliConfig.nodePools.length > 0) {
         this.normanCluster.aliConfig.nodePools.forEach((pool) => {
           pool['_id'] = pool.nodePoolId || randomStr();
-          pool['_isNewOrUnprovisioned'] = this.isNewOrUnprovisioned;
+          pool['_isNew'] = this.isNew;
           pool['_validation'] = {};
         });
       }
@@ -256,6 +257,17 @@ export default defineComponent({
     isView() {
       return this.mode === _VIEW;
     },
+
+    isImport() {
+      return this.$route?.query?.mode === _IMPORT;
+    },
+    isNew() {
+      return this.mode === _CREATE || this.mode === _IMPORT;
+    },
+
+    isInactive() {
+      return !this.isNew && (!this.normanCluster?.aliStatus?.upstreamSpec || this.value.state !== STATES_ENUM.ACTIVE);
+    },
     clusterSpecOptions() {
       return [
         {
@@ -282,12 +294,6 @@ export default defineComponent({
       };
     },
 
-    isImport() {
-      return this.$route?.query?.mode === _IMPORT;
-    },
-    isNewOrUnprovisioned() {
-      return this.mode === _CREATE || !this.normanCluster?.aliStatus?.upstreamSpec;
-    },
     hasCredential() {
       return !!this.config?.alibabaCredentialSecret;
     },
@@ -337,7 +343,7 @@ export default defineComponent({
   },
   methods: {
     async getLocations() {
-      if (!this.isNewOrUnprovisioned) {
+      if (!this.isNew) {
         return;
       }
       this.loadingLocations = true;
@@ -459,9 +465,9 @@ export default defineComponent({
     },
     removePool(i) {
       const pool = this.nodePools[i];
-      const lastAndProvisioned = this.nodePools.length === 1 && !this.isNewOrUnprovisioned;
+      const lastAndExisting = this.nodePools.length === 1 && !this.isNew;
 
-      if (!lastAndProvisioned) {
+      if (!lastAndExisting) {
         removeObject(this.nodePools, pool);
       }
     },
@@ -470,7 +476,7 @@ export default defineComponent({
       const poolName = `nodePool-${ this.nodePools.length + 1 }`;
       const _id = randomStr();
       const neu = {
-        ...cloneDeep(DEFAULT_NODE_GROUP_CONFIG), name: poolName, _id, _isNewOrUnprovisioned: true, version: this.config.kubernetesVersion
+        ...cloneDeep(DEFAULT_NODE_GROUP_CONFIG), name: poolName, _id, _isNew: true, version: this.config.kubernetesVersion
       };
 
       this.nodePools.push(neu);
@@ -552,7 +558,7 @@ export default defineComponent({
           :mode="mode"
           label-key="nameNsDescription.description.label"
           :placeholder="t('nameNsDescription.description.placeholder')"
-          :disabled="isView"
+          :disabled="isView || isInactive"
         />
       </div>
     </div>
@@ -581,7 +587,7 @@ export default defineComponent({
           :loading="loadingLocations"
           required
           :rules="fvGetAndReportPathRules('regionId')"
-          :disabled="!isNewOrUnprovisioned"
+          :disabled="!isNew"
         />
       </div>
 
@@ -599,7 +605,7 @@ export default defineComponent({
           option-label="label"
           :loading="loadingVersions"
           required
-          :disabled="isView"
+          :disabled="isView || isInactive"
         />
       </div>
     </div>
@@ -617,7 +623,7 @@ export default defineComponent({
           :options="clusterSpecOptions"
           label-key="ack.clusterSpec.label"
           required
-          :disabled="!isNewOrUnprovisioned"
+          :disabled="!isNew"
         />
       </div>
     </div>
@@ -668,7 +674,6 @@ export default defineComponent({
             :config="config"
             :value="value"
             :mode="mode"
-            :is-new-or-unprovisioned="isNewOrUnprovisioned"
             @error="e=>errors.push(e)"
             @zone-changed="(val)=>zones=val"
           />
@@ -678,7 +683,7 @@ export default defineComponent({
           ref="pools"
           class="node-pools mb-20"
           :side-tabs="true"
-          :show-tabs-add-remove="!isView"
+          :show-tabs-add-remove="!isView && !isInactive"
           :use-hash="false"
           @removeTab="removePool($event)"
           @addTab="addPool()"
@@ -693,6 +698,7 @@ export default defineComponent({
               :mode="mode"
               :config="config"
               :pool="pool"
+              :is-inactive="isInactive"
               :all-images="allImagesForVersion"
               :all-instance-types="allInstanceTypes"
               :loading-images="loadingImages"
