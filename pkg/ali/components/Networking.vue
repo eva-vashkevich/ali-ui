@@ -420,7 +420,7 @@ export default defineComponent({
       try {
         const res = await getAlibabaResourceGroups(this.$store, this.alibabaCredentialSecret, this.regionId );
 
-        this.allResourceGroups = (res?.ResourceGroups?.ResourceGroup || []).map((group) => {
+        this.allResourceGroups = (res || []).map((group) => {
           return { value: group.Id, label: group.Name };
         });
       } catch (err) {
@@ -437,7 +437,7 @@ export default defineComponent({
 
       try {
         const res = await getAlibabaVpcs(this.$store, this.alibabaCredentialSecret, this.regionId, resourceGroupId );
-        const vpcs = res?.Vpcs?.Vpc || [];
+        const vpcs = res || [];
 
         vpcs.forEach((vpc) => {
           let label = vpc.VpcName ? `${ vpc.VpcName } (${ vpc.VpcId })` : vpc.VpcId;
@@ -462,7 +462,7 @@ export default defineComponent({
 
       try {
         const res = await getAlibabaVSwitches(this.$store, this.alibabaCredentialSecret, this.regionId, vpcId, resourceGroupId );
-        const vSwitches = res?.VSwitches?.VSwitch || [];
+        const vSwitches = res || [];
 
         vSwitches.forEach((vswitch) => {
           let label = vswitch.VSwitchName ? `${ vswitch.VSwitchName } (${ vswitch.VSwitchId })` : vswitch.VSwitchId;
