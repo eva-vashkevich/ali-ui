@@ -278,9 +278,7 @@ export default defineComponent({
           this.$emit('update:zoneIds', []);
           this.$emit('update:vpcId', this.vpcOptions[0]?.value || '');
         } else {
-          this.$emit('update:vpcId', '');
-          this.$emit('update:vswitchIds', []);
-          this.$emit('update:podVswitchIds', []);
+          this.emptyVPCSection();
           if (this.allAvailabilityZones.length) {
             this.$emit('update:zoneIds', this.allAvailabilityZones.map((z) => z.value));
           }
@@ -304,10 +302,8 @@ export default defineComponent({
       handler() {
         if (this.isNew) {
           this.$emit('update:resourceGroupId', '');
-          this.$emit('update:vpcId', '');
-          this.$emit('update:vswitchIds', []);
-          this.$emit('update:podVswitchIds', []);
           this.$emit('update:zoneIds', []);
+          this.emptyVPCSection();
         }
         this.getResourceGroups();
         this.getZones();
@@ -318,10 +314,8 @@ export default defineComponent({
       handler() {
         if (this.isNew) {
           this.$emit('update:resourceGroupId', '');
-          this.$emit('update:vpcId', '');
-          this.$emit('update:vswitchIds', []);
-          this.$emit('update:podVswitchIds', []);
           this.$emit('update:zoneIds', []);
+          this.emptyVPCSection();
         }
         this.getResourceGroups();
         this.getZones();
@@ -330,18 +324,19 @@ export default defineComponent({
     },
     resourceGroupId: {
       async handler() {
+        await this.getVPCs();
         if (this.chooseVPC) {
-          await this.getVPCs();
           if (this.isNew) {
-            this.$emit('update:vpcId', '');
-            this.$emit('update:vswitchIds', []);
-            this.$emit('update:podVswitchIds', []);
+            this.emptyVPCSection();
+            // Need to wait for the VPC section to actually become empty
+            // otherwise, watch might not get triggered if old value matches new value
+            this.$nextTick(() => {
+              const firstVpc = Object.keys(this.allVPCs)[0];
 
-            const firstVpc = Object.keys(this.allVPCs)[0];
-
-            if (firstVpc) {
-              this.$emit('update:vpcId', firstVpc);
-            }
+              if (firstVpc) {
+                this.$emit('update:vpcId', firstVpc);
+              }
+            });
           }
         }
       },
@@ -433,10 +428,9 @@ export default defineComponent({
     async getVPCs() {
       this.loadingVPCs = true;
       this.allVPCs = {};
-      const resourceGroupId = this.config.resourceGroupId;
 
       try {
-        const res = await getAlibabaVpcs(this.$store, this.alibabaCredentialSecret, this.regionId, resourceGroupId );
+        const res = await getAlibabaVpcs(this.$store, this.alibabaCredentialSecret, this.regionId, this.resourceGroupId );
         const vpcs = res || [];
 
         vpcs.forEach((vpc) => {
@@ -458,10 +452,9 @@ export default defineComponent({
     async getVswitches() {
       this.loadingVswitches = true;
       this.allVSwitches = {};
-      const { resourceGroupId, vpcId } = this.config;
 
       try {
-        const res = await getAlibabaVSwitches(this.$store, this.alibabaCredentialSecret, this.regionId, vpcId, resourceGroupId );
+        const res = await getAlibabaVSwitches(this.$store, this.alibabaCredentialSecret, this.regionId, this.vpcId, this.resourceGroupId );
         const vSwitches = res || [];
 
         vSwitches.forEach((vswitch) => {
@@ -537,6 +530,11 @@ export default defineComponent({
 
       return '';
     },
+    emptyVPCSection() {
+      this.$emit('update:vpcId', '');
+      this.$emit('update:vswitchIds', []);
+      this.$emit('update:podVswitchIds', []);
+    }
 
   }
 });
