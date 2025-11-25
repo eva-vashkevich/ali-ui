@@ -801,5 +801,20 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+
+}
+
+.node-pools :deep() .fixed-header-actions {
+  grid-column-gap: 0px;
+
+  .row {
+    justify-content: flex-end;
+  }
+
+  .col {
+    margin-left: 10px;
+    margin-right: 0px;
+  }
+
 }
 </style>
