@@ -562,7 +562,9 @@ export default defineComponent({
         />
       </div>
     </div>
-    <div class="row mb-20">
+    <div
+      :class="hasCredential ? 'row mb-20' : 'row creating-credential'"
+    >
       <div :class="hasCredential ? 'col span-4' : 'col span-12'">
         <SelectCredential
           v-model:value="config.alibabaCredentialSecret"
@@ -610,9 +612,12 @@ export default defineComponent({
       </div>
     </div>
 
-    <div class="row mb-20">
+    <div
+      v-if="hasCredential && !isImport"
+      class="row mb-20"
+    >
       <div
-        v-if="hasCredential && !isImport"
+
         class="col span-4"
       >
         <RadioGroup
@@ -790,5 +795,11 @@ export default defineComponent({
 .node-pools > .tab-container {
   border-top-right-radius: 8px ;
   border-bottom-right-radius: 8px ;
+}
+
+.creating-credential,.creating-credential>div {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
 }
 </style>
