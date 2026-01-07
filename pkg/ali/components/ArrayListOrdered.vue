@@ -1,4 +1,4 @@
-<script>
+<script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import debounce from 'lodash/debounce';
 import { _EDIT, _VIEW } from '@shell/config/query-params';
@@ -6,148 +6,122 @@ import { removeAt } from '@shell/utils/array';
 import { clone } from '@shell/utils/object';
 import Tag from '@shell/components/Tag.vue';
 
-export default {
-  emits: ['add', 'remove', 'update:value'],
+interface OrderedRow {
+  value: any;
+}
+interface Props {
+  value?: any[] | null;
+  mode?: string;
+  initialEmptyRow?: boolean;
+  title?: string;
+  valueMultiline?: boolean;
+  defaultAddValue?: string | number | Record<string, any> | any[];
+  disabled?: boolean;
+  componentTestid?: string;
+}
+const {
+  value = null,
+  mode = _EDIT,
+  initialEmptyRow = false,
+  title = '',
+  valueMultiline = false,
+  defaultAddValue = '',
+  disabled = false,
+  componentTestid = 'array-list-ordered'
+} = defineProps<Props>();
 
-  components: { Tag },
-  props:      {
-    value: {
-      type:    Array,
-      default: null,
-    },
-    mode: {
-      type:    String,
-      default: _EDIT,
-    },
-    initialEmptyRow: {
-      type:    Boolean,
-      default: false,
-    },
-    title: {
-      type:    String,
-      default: ''
-    },
-    valueMultiline: {
-      type:    Boolean,
-      default: false,
-    },
-    defaultAddValue: {
-      type:    [String, Number, Object, Array],
-      default: ''
-    },
-    disabled: {
-      type:    Boolean,
-      default: false,
-    },
-    componentTestid: {
-      type:    String,
-      default: 'array-list-ordered',
+const emit = defineEmits(['add', 'remove', 'update:value']);
+const input = (Array.isArray(value) ? value : []).slice();
+const rows = ref<OrderedRow[]>([]);
+
+for ( const val of input ) {
+  rows.value.push({ value: val });
+}
+if ( !rows.value.length && initialEmptyRow ) {
+  const val = defaultAddValue ? clone(defaultAddValue) : '';
+
+  rows.value.push({ value: val });
+}
+
+const isView = computed(() => {
+  return mode === _VIEW;
+});
+
+/**
+ * Cleanup rows and emit input
+ */
+const update = () => {
+  if ( isView.value ) {
+    return;
+  }
+  const out = [];
+
+  for ( const row of rows.value ) {
+    const trim = !valueMultiline && (typeof row.value === 'string');
+    const val = trim ? row.value.trim() : row.value;
+
+    if ( typeof val !== 'undefined' ) {
+      out.push(val);
     }
-  },
-
-  setup(props, { emit }) {
-    const input = (Array.isArray(props.value) ? props.value : []).slice();
-    const rows = ref([]);
-
-    for ( const value of input ) {
-      rows.value.push({ value });
-    }
-    if ( !rows.value.length && props.initialEmptyRow ) {
-      const value = props.defaultAddValue ? clone(props.defaultAddValue) : '';
-
-      rows.value.push({ value });
-    }
-
-    const isView = computed(() => {
-      return props.mode === _VIEW;
-    });
-
-    /**
-     * Cleanup rows and emit input
-     */
-    const update = () => {
-      if ( isView.value ) {
-        return;
-      }
-      const out = [];
-
-      for ( const row of rows.value ) {
-        const trim = !props.valueMultiline && (typeof row.value === 'string');
-        const value = trim ? row.value.trim() : row.value;
-
-        if ( typeof value !== 'undefined' ) {
-          out.push(value);
-        }
-      }
-      emit('update:value', out);
-    };
-
-    const lastUpdateWasFromValue = ref(false);
-    const queueUpdate = debounce(update, 50);
-
-    watch(
-      rows,
-      () => {
-        // lastUpdateWasFromValue is used to break a cycle where when rows are updated
-        // this was called which then forced rows to updated again
-        if (!lastUpdateWasFromValue.value) {
-          queueUpdate();
-        }
-        lastUpdateWasFromValue.value = false;
-      },
-      { deep: true }
-    );
-
-    watch(
-      () => props.value,
-      () => {
-        lastUpdateWasFromValue.value = true;
-        rows.value = (props.value || []).map((v) => ({ value: v }));
-      },
-      { deep: true }
-    );
-
-    return {
-      rows,
-      lastUpdateWasFromValue,
-      queueUpdate,
-      isView,
-      update,
-    };
-  },
-
-  methods: {
-    /**
-     * Remove item and emits removed row and its own index value
-     */
-    remove(row, index) {
-      this.$emit('remove', { row, index });
-      removeAt(this.rows, index);
-      this.queueUpdate();
-    },
-    moveUp(index) {
-      if (index > 0) {
-        const element = this.rows[index];
-
-        this.rows.splice(index, 1);
-        this.rows.splice(index - 1, 0, element);
-
-        this.queueUpdate();
-      }
-    },
-    moveDown(index) {
-      if (index < this.rows.length - 1) {
-        const element = this.rows[index];
-
-        this.rows.splice(index, 1);
-        this.rows.splice(index + 1, 0, element);
-
-        this.queueUpdate();
-      }
-    },
-
-  },
+  }
+  emit('update:value', out);
 };
+
+const lastUpdateWasFromValue = ref(false);
+const queueUpdate = debounce(update, 50);
+
+watch(
+  rows,
+  () => {
+    // lastUpdateWasFromValue is used to break a cycle where when rows are updated
+    // this was called which then forced rows to updated again
+    if (!lastUpdateWasFromValue.value) {
+      queueUpdate();
+    }
+    lastUpdateWasFromValue.value = false;
+  },
+  { deep: true }
+);
+
+watch(
+  () => value,
+  () => {
+    lastUpdateWasFromValue.value = true;
+    rows.value = (value || []).map((v) => ({ value: v }));
+  },
+  { deep: true }
+);
+
+/**
+ * Remove item and emits removed row and its own index value
+ */
+ function remove(row: OrderedRow, index: number) {
+  emit('remove', { row, index });
+  removeAt(rows.value, index);
+  queueUpdate();
+}
+
+function moveUp(index: number) {
+  if (index > 0) {
+    const element = rows.value[index];
+
+    rows.value.splice(index, 1);
+    rows.value.splice(index - 1, 0, element);
+
+    queueUpdate();
+  }
+}
+
+function moveDown(index: number) {
+  if (index < rows.value.length - 1) {
+    const element = rows.value[index];
+
+    rows.value.splice(index, 1);
+    rows.value.splice(index + 1, 0, element);
+
+    queueUpdate();
+  }
+}
 </script>
 
 <template>

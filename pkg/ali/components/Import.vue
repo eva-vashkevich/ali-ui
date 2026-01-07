@@ -1,93 +1,66 @@
-<script>
+<script setup lang="ts">
+import { ref, watch } from 'vue';
 import { _EDIT } from '@shell/config/query-params';
 import debounce from 'lodash/debounce';
 import LabeledSelect from '@shell/components/form/LabeledSelect.vue';
 import LabeledInput from '@components/Form/LabeledInput/LabeledInput.vue';
 import { getAlibabaClusters } from '../util/ack';
-export default {
-  name: 'ImportACK',
+import { useStore } from 'vuex';
 
-  emits: ['update:clusterName', 'update:clusterId', 'error'],
+interface Props {
+  mode?: string;
+  // name of cluster to be imported
+  // this wont necessarily align with normanCluster.name as it would w/ provisioning
+  clusterName?: string;
+  clusterId?: string;
+  credential?: string | null;
+  region?: string;
+  rules?: any;
+}
 
-  components: { LabeledSelect, LabeledInput },
+const {
+  mode = _EDIT,
+  clusterName = '',
+  clusterId = '',
+  credential = null,
+  region = '',
+  rules = {}
+} = defineProps<Props>();
 
-  props: {
-    mode: {
-      type:    String,
-      default: _EDIT
-    },
+const emit = defineEmits(['update:clusterName', 'update:clusterId', 'error']);
+const store = useStore();
+const loadingClusters = ref(false);
+const clusters = ref([]);
 
-    // name of cluster to be imported
-    // this wont necessarily align with normanCluster.name as it would w/ provisioning
-    clusterName: {
-      type:    String,
-      default: ''
-    },
-    clusterId: {
-      type:    String,
-      default: ''
-    },
-
-    credential: {
-      type:    String,
-      default: null
-    },
-
-    region: {
-      type:    String,
-      default: ''
-    },
-
-    rules: {
-      type:    Object,
-      default: () => {
-        return {};
-      }
-    }
-  },
-
-  created() {
-    this.debouncedlistAckClusters = debounce(this.listAckClusters, 200);
-    this.debouncedlistAckClusters();
-  },
-
-  data() {
-    return { loadingClusters: false, clusters: [] };
-  },
-
-  watch: {
-    region() {
-      this.debouncedlistAckClusters();
-    },
-    cloudCredentialId() {
-      this.debouncedlistAckClusters();
-    }
-  },
-
-  methods: {
-    clusterChanged(val) {
-      this.$emit('update:clusterName', val?.name || '');
-      this.$emit('update:clusterId', val?.id || '');
-    },
-    async listAckClusters() {
-      if (!this.region || !this.credential) {
-        return;
-      }
-      this.loadingClusters = true;
-      try {
-        const res = await getAlibabaClusters(this.$store, this.credential, this.region );
-
-        this.clusters = res?.map((c) => {
-          return { name: c.name, id: c.cluster_id };
-        }) || [];
-      } catch (err) {
-        this.$emit('error', err);
-      }
-
-      this.loadingClusters = false;
-    }
-  }
+function clusterChanged(val: any) {
+  emit('update:clusterName', val?.name || '');
+  emit('update:clusterId', val?.id || '');
 };
+
+async function listAckClusters() {
+  if (!region || !credential) {
+    return;
+  }
+  loadingClusters.value = true;
+  try {
+    const res = await getAlibabaClusters(store, credential, region );
+
+    clusters.value = res?.map((c: any) => {
+      return { name: c.name, id: c.cluster_id };
+    }) || [];
+  } catch (err) {
+    emit('error', err);
+  }
+
+  loadingClusters.value = false;
+};
+
+const debouncedlistAckClusters = debounce(listAckClusters, 200);
+debouncedlistAckClusters();
+
+watch(() => region, debouncedlistAckClusters);
+watch(() => credential, debouncedlistAckClusters);
+
 </script>
 
 <template>
