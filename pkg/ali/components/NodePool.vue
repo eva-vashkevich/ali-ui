@@ -98,7 +98,7 @@ const showScaling = computed(() => {
 
 const scalingModeOptions = ref([{label: t('ack.nodePool.scalingMode.manual'), value: false},{label: t('ack.nodePool.scalingMode.auto'), value: true}])
 const autoScalingSupported = computed(() => {
-  return typeof pool.enableAutoScaling !== 'undefined';
+  return true ;//typeof pool.enableAutoScaling !== 'undefined';
 });
 
 const getDiskTypes = async() => {
@@ -224,6 +224,7 @@ function poolSizeValidator() {
             name="node-autoscaling"
             :mode="mode"
             :options="scalingModeOptions"
+            :row="true"
             @update:value="handleEnablingAutoscaling"
           />
       </div>
