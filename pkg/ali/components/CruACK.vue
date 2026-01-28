@@ -185,6 +185,13 @@ export default defineComponent({
           pool['_id'] = pool.nodePoolId || randomStr();
           pool['_isNew'] = this.isNew;
           pool['_validation'] = {};
+          if(!Object.hasOwn(pool, 'enableAutoScaling')){
+            if(pool.minInstances || pool.maxInstances){
+              pool.enableAutoScaling = true;
+            } else {
+              pool.enableAutoScaling = false;
+            }
+          }
         });
       }
       this.nodePools = this.normanCluster.aliConfig.nodePools || [];
