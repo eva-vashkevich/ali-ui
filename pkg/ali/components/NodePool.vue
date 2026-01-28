@@ -92,7 +92,7 @@ const image = computed({
   }
 });
 
-const scalingModeOptions = ref([{label: t('ack.nodePool.scalingMode.manual'), value: false},{label: t('ack.nodePool.scalingMode.auto'), value: true}])
+const scalingModeOptions = ref([{label: t('ack.nodePool.scalingMode.manual'), value: false},{label: t('ack.nodePool.scalingMode.auto'), value: true}]);
 
 const getDiskTypes = async() => {
   loadingDiskTypes.value = true;
@@ -230,6 +230,7 @@ function maxInstancesValidator() {
             :mode="mode"
             :options="scalingModeOptions"
             :row="true"
+            :disabled="isView || isInactive"
             @update:value="handleEnablingAutoscaling"
           />
       </div>
@@ -261,6 +262,7 @@ function maxInstancesValidator() {
               :mode="mode"
               label-key="ack.nodePool.minInstances.label"
               data-testid="ack-pool-min-instances-input"
+              :disabled="isView || isInactive"
               :rules="[minInstancesValidator()]"
               required
             />
@@ -272,6 +274,7 @@ function maxInstancesValidator() {
               :mode="mode"
               label-key="ack.nodePool.maxInstances.label"
               data-testid="ack-pool-max-instances-input"
+              :disabled="isView || isInactive"
               :rules="[maxInstancesValidator()]"
               required
             />
