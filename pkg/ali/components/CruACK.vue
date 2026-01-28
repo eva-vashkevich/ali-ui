@@ -35,7 +35,9 @@ import {
   nodePoolNames,
   nodePoolNamesUnique,
   nodePoolCount,
-  instanceTypeCount
+  instanceTypeCount,
+  minInstances,
+  maxInstances
 } from '../util/validation';
 import { SETTING } from '@shell/config/settings';
 import { syncUpstreamConfig } from '@shell/utils/kontainer';
@@ -129,6 +131,14 @@ export default defineComponent({
       {
         path:  'instanceTypeCount',
         rules: ['instanceTypeCount']
+      },
+      {
+        path:  'minInstances',
+        rules: ['minInstances']
+      },
+      {
+        path:  'maxInstances',
+        rules: ['maxInstances']
       },
       ],
 
@@ -247,6 +257,8 @@ export default defineComponent({
         poolNamesUnique:         nodePoolNamesUnique(this),
         poolCount:               nodePoolCount(this),
         instanceTypeCount:       instanceTypeCount(this),
+        minInstances:            minInstances(this),
+        maxInstances:            maxInstances(this),
       };
     },
 
@@ -673,7 +685,9 @@ export default defineComponent({
               :validation-rules="{
                 name: fvGetAndReportPathRules('poolName'),
                 count: fvGetAndReportPathRules('poolCount'),
-                instanceTypeCount: fvGetAndReportPathRules('instanceTypeCount')
+                instanceTypeCount: fvGetAndReportPathRules('instanceTypeCount'),
+                minInstances: fvGetAndReportPathRules('minInstances'),
+                maxInstances: fvGetAndReportPathRules('maxInstances')
               }"
               @error="e=>errors.push(e)"
             />

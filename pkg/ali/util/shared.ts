@@ -104,6 +104,7 @@ export const DEFAULT_NODE_GROUP_CONFIG = {
   runtime:        'containerd',
   runtimeVersion: '1.6.38',
   vswitchIds:     [],
+  enableAutoScaling: false,
   _validation:    {},
   _isNew:         true,
 };

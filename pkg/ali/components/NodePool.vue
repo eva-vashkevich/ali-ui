@@ -92,14 +92,7 @@ const image = computed({
   }
 });
 
-const showScaling = computed(() => {
-  return pool.minInstances || pool.maxInstances;
-});
-
 const scalingModeOptions = ref([{label: t('ack.nodePool.scalingMode.manual'), value: false},{label: t('ack.nodePool.scalingMode.auto'), value: true}])
-const autoScalingSupported = computed(() => {
-  return true ;//typeof pool.enableAutoScaling !== 'undefined';
-});
 
 const getDiskTypes = async() => {
   loadingDiskTypes.value = true;
@@ -200,6 +193,18 @@ function poolSizeValidator() {
   return (val: any) => validationRules?.count?.[0](val, _isNew);
 }
 
+function minInstancesValidator() {
+  const maxInstances = pool.maxInstances;
+
+  return (val: any) => validationRules?.minInstances?.[0](val, maxInstances);
+}
+
+function maxInstancesValidator() {
+  const minInstances = pool.minInstances;
+
+  return (val: any) => validationRules?.maxInstances?.[0](val, minInstances);
+}
+
 </script>
 
 <template>
@@ -218,7 +223,7 @@ function poolSizeValidator() {
       </div>
       <div class="mb-30">
         <h4 class="mb-10">{{ t("ack.nodePool.scalingMode.label") }}</h4>
-      <div v-if="autoScalingSupported" class="col span-3 mb-10">
+      <div class="col span-3 mb-10">
         <RadioGroup
             v-model:value="pool.enableAutoScaling"
             name="node-autoscaling"
@@ -230,7 +235,7 @@ function poolSizeValidator() {
       </div>
       
         <div
-          v-if="!pool.enableAutoScaling && !showScaling"
+          v-if="!pool.enableAutoScaling"
           class="col span-3"
         >
           <LabeledInput
@@ -252,21 +257,23 @@ function poolSizeValidator() {
           <div class="col span-4">
             <LabeledInput
               v-model:value.number="pool.minInstances"
-              :disabled="!autoScalingSupported"
               type="number"
               :mode="mode"
               label-key="ack.nodePool.minInstances.label"
               data-testid="ack-pool-min-instances-input"
+              :rules="[minInstancesValidator()]"
+              required
             />
           </div>
           <div class="col span-4">
             <LabeledInput
               v-model:value.number="pool.maxInstances"
-              :disabled="!autoScalingSupported"
               type="number"
               :mode="mode"
               label-key="ack.nodePool.maxInstances.label"
               data-testid="ack-pool-max-instances-input"
+              :rules="[maxInstancesValidator()]"
+              required
             />
           </div>
         </div>

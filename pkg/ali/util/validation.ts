@@ -161,9 +161,14 @@ export const nodePoolCount = (ctx:any) => {
       let allValid = true;
 
       ctx.nodePools.forEach((pool: any) => {
+        if (pool.enableAutoScaling) {
+          return;
+        }
         const { desiredSize, _isNew } = pool;
         if(!desiredSize || !Number.isInteger(+desiredSize) || `${ desiredSize }`.match(/\.+/g)){
-          return ctx.t('validation.nodeCountNumeric');
+          pool._validation['_validCount'] = false;
+          allValid = false;
+          return;
         }
         
         const max = !_isNew ? 500 : ( isBasic ? 10 : 5000 );
@@ -202,3 +207,83 @@ export const instanceTypeCount = (ctx:any) => {
     }
   }
 };
+
+export const minInstances = (ctx:any) => {
+  return (minInstances?: number, maxInstances = 0) => {
+    if(!!minInstances && (!Number.isInteger(+minInstances) || `${ minInstances }`.match(/\.+/g))){
+      return ctx.t('validation.instancesNumeric');
+    }
+
+    let errMsg = ctx.t('validation.minInstances');
+    const min = 0;
+
+    if (minInstances || minInstances === 0) {
+      if(!maxInstances){
+        return minInstances >= min ? undefined : errMsg;
+      }
+      return minInstances >= min && minInstances <= maxInstances ? undefined : errMsg;
+    } else {
+      let allValid = true;
+
+      ctx.nodePools.forEach((pool: any) => {
+        if (!pool.enableAutoScaling) {
+          return;
+        }
+        const { minInstances, maxInstances } = pool;
+        if(!minInstances || !Number.isInteger(+minInstances) || `${ minInstances }`.match(/\.+/g)){
+          pool._validation['_validCount'] = false;
+          allValid = false;
+          return;
+        }
+
+        if (minInstances < min || !(!!maxInstances && minInstances <= maxInstances)) {
+          pool._validation['_validCount'] = false;
+          allValid = false;
+        } else {
+          pool._validation['_validCount'] = true;
+        }
+      });
+
+      return allValid ? undefined : errMsg;
+    }
+  };
+};
+export const maxInstances = (ctx:any) => {
+  return (maxInstances?: number, minInstances = 0) => {
+    if(!!maxInstances && (!Number.isInteger(+maxInstances) || `${ maxInstances }`.match(/\.+/g))){
+      return ctx.t('validation.instancesNumeric');
+    }
+
+    let errMsg = ctx.t('validation.maxInstances');
+    let min = !minInstances ? 0 : minInstances;
+
+    if (maxInstances || maxInstances === 0) {
+      return maxInstances >= min ? undefined : errMsg;
+    } else {
+      let allValid = true;
+
+      ctx.nodePools.forEach((pool: any) => {
+        if (!pool.enableAutoScaling) {
+          return;
+        }
+        const { minInstances, maxInstances } = pool;
+        let min = !minInstances ? 0 : minInstances;
+        if(!maxInstances || !Number.isInteger(+maxInstances) || `${ maxInstances }`.match(/\.+/g)){
+          pool._validation['_validCount'] = false;
+          allValid = false;
+          return;
+        }
+
+        if (maxInstances < min) {
+          pool._validation['_validCount'] = false;
+          allValid = false;
+        } else {
+          pool._validation['_validCount'] = true;
+        }
+      });
+
+      return allValid ? undefined : errMsg;
+    }
+  };
+}
+
