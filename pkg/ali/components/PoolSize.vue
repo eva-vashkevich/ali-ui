@@ -7,6 +7,10 @@ import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
 import LabeledInput from '@components/Form/LabeledInput/LabeledInput.vue';
 import RadioGroup from '@components/Form/Radio/RadioGroup.vue';
+import RichTranslation from '@shell/components/RichTranslation.vue';
+import { Banner } from '@components/Banner';
+
+const DOCS_LINK = 'https://scc.suse.com/rancher-docs/rancherprime/latest/en/suse-rancher-prime/alibaba-hosted-clusters/setting-up-rancher.html#_installing_the_ali_operator_and_ali_operator_crd_charts';
 
   interface Props {
     mode?: string;
@@ -102,33 +106,52 @@ function handleEnablingAutoscaling(val: boolean) {
     </div>
     <div
       v-else
-      class="row span-12"
+      class="col"
     >
-      <div class="col span-4">
-        <LabeledInput
-          v-model:value.number="value.minInstances"
-          type="number"
-          :mode="mode"
-          label-key="ack.nodePool.minInstances.label"
-          data-testid="ack-value-min-instances-input"
-          :disabled="isView || isInactive"
-          :rules="[minInstancesValidator()]"
-          :require-dirty="false"
-          required
-        />
-      </div>
-      <div class="col span-4">
-        <LabeledInput
-          v-model:value.number="value.maxInstances"
-          type="number"
-          :mode="mode"
-          label-key="ack.nodePool.maxInstances.label"
-          data-testid="ack-value-max-instances-input"
-          :disabled="isView || isInactive"
-          :rules="[maxInstancesValidator()]"
-          :require-dirty="false"
-          required
-        />
+      <Banner
+        color="info"
+      >
+        <RichTranslation :k="`ack.nodePool.scalingMode.banner`">
+          <template #docsUrl="{ content }">
+            <a
+              :href="`${DOCS_LINK}`"
+              tabindex="0"
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+            >
+              {{ content }} <i class="icon icon-external-link" />
+              <span class="sr-only">{{ t('generic.opensInNewTab') }}</span>
+            </a>
+          </template>
+        </RichTranslation>
+      </Banner>
+      <div class="row span-12">
+        <div class="col span-4">
+          <LabeledInput
+            v-model:value.number="value.minInstances"
+            type="number"
+            :mode="mode"
+            label-key="ack.nodePool.minInstances.label"
+            data-testid="ack-value-min-instances-input"
+            :disabled="isView || isInactive"
+            :rules="[minInstancesValidator()]"
+            :require-dirty="false"
+            required
+          />
+        </div>
+        <div class="col span-4">
+          <LabeledInput
+            v-model:value.number="value.maxInstances"
+            type="number"
+            :mode="mode"
+            label-key="ack.nodePool.maxInstances.label"
+            data-testid="ack-value-max-instances-input"
+            :disabled="isView || isInactive"
+            :rules="[maxInstancesValidator()]"
+            :require-dirty="false"
+            required
+          />
+        </div>
       </div>
     </div>
   </div>
