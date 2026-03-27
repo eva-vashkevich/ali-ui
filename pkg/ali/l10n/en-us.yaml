@@ -35,6 +35,7 @@ ack:
       label: Scaling Mode
       manual: Manual
       auto: Auto
+      banner: Auto scaling mode requires `ali-operator` v1.13.1+. Please refer to <docsUrl>documentation</docsUrl> on how to update it if needed.
     desiredSize:
       label: Expected Nodes
     minInstances:
