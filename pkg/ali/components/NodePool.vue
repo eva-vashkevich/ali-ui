@@ -72,7 +72,7 @@ const systemDisk = reactive({
       pool.systemDiskSize = neu;
     }
   }),
-  encrypted: ref(false)
+  encrypted: ref('false')
 });
 
 const imageOptions = computed(() => {
@@ -86,7 +86,7 @@ const image = computed({
     return pool.imageType;
   },
   set(neu) {
-    pool.imageId = allImages[neu];
+    pool.imageId = allImages[neu]?.imageId || '';
     pool.imageType = neu;
   }
 });
