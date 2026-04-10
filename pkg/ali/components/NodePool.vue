@@ -241,7 +241,7 @@ function poolSizeValidator() {
       </div>
     </div>
     <div class="row mb-20">
-      <div class="col span-6">
+      <div class="col span-7">
         <LabeledSelect
           v-model:value="image"
           :mode="mode"
