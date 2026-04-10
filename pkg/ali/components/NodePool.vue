@@ -72,7 +72,7 @@ const systemDisk = reactive({
       pool.systemDiskSize = neu;
     }
   }),
-  encrypted: ref(false)
+  encrypted: ref('false')
 });
 
 const imageOptions = computed(() => {
@@ -86,7 +86,7 @@ const image = computed({
     return pool.imageType;
   },
   set(neu) {
-    pool.imageId = allImages[neu];
+    pool.imageId = allImages[neu]?.imageId || '';
     pool.imageType = neu;
   }
 });
@@ -241,7 +241,7 @@ function poolSizeValidator() {
       </div>
     </div>
     <div class="row mb-20">
-      <div class="col span-6">
+      <div class="col span-7">
         <LabeledSelect
           v-model:value="image"
           :mode="mode"

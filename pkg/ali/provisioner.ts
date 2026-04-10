@@ -3,7 +3,6 @@ import { mapDriver } from '@shell/store/plugins';
 import { isProviderEnabled } from "@shell/utils/settings";
 import type { Component } from 'vue';
 import CruACK from "./components/CruACK.vue";
-import { isRancherPrime } from '@shell/config/version';
 export class ACKProvisioner implements IClusterProvisioner {
   static ID = "alibaba";
 
@@ -35,7 +34,7 @@ export class ACKProvisioner implements IClusterProvisioner {
   }
 
   get hidden(): boolean {
-    return !isProviderEnabled(this.context, this.id) || !isRancherPrime();
+    return !isProviderEnabled(this.context, this.id);
   }
   
   get prime(): boolean {
